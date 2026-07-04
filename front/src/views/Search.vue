@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onActivated, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api/client'
 import { useProgressStore } from '../stores/progress'
@@ -19,6 +19,13 @@ const loading = ref(false)
 const error = ref(null)
 const modalVideo = ref(null)
 const searched = ref(false)
+const inputEl = ref(null)
+
+function focusInput() {
+  nextTick(() => inputEl.value?.focus())
+}
+onMounted(focusInput)
+onActivated(focusInput)
 
 async function runSearch(q) {
   if (!q.trim()) return
@@ -52,7 +59,7 @@ watch(
 <template>
   <div class="search">
     <form class="search__bar" @submit.prevent="submit">
-      <input v-model="term" type="search" placeholder="Rechercher…" class="search__input" />
+      <input ref="inputEl" v-model="term" type="search" placeholder="Rechercher…" class="search__input" />
       <button type="submit" class="search__submit">Rechercher</button>
     </form>
 

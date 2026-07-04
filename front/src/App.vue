@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import AccountSwitcher from './components/AccountSwitcher.vue'
 import Sidebar from './components/Sidebar.vue'
 import BottomNav from './components/BottomNav.vue'
@@ -7,6 +8,21 @@ import ScrollToTop from './components/ScrollToTop.vue'
 import ToastContainer from './components/ToastContainer.vue'
 
 const sidebarOpen = ref(false)
+
+// Raccourci global "/" → recherche (façon YouTube/GitHub), ignoré si le
+// focus est déjà dans un champ de saisie.
+const router = useRouter()
+const route = useRoute()
+function onKeydown(e) {
+  if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return
+  const tag = e.target?.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) return
+  if (route.name === 'search') return
+  e.preventDefault()
+  router.push({ name: 'search' })
+}
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
