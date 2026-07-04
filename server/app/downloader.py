@@ -4,10 +4,12 @@ Le fichier est écrit dans cache_dir puis servi via FileResponse (Range natif),
 puis supprimé par le job de nettoyage (app/cleanup.py).
 """
 import asyncio
+import re
 import time
 from pathlib import Path
 
 import yt_dlp
+from yt_dlp.utils import GeoRestrictedError, UnavailableVideoError
 
 from app.cache import get_redis
 from app.config import settings
@@ -15,6 +17,35 @@ from app.config import settings
 STATUS_DOWNLOADING = "downloading"
 STATUS_READY = "ready"
 STATUS_ERROR = "error"
+
+# yt-dlp ne distingue la plupart de ces cas que par le texte du message
+# (pas de sous-classe d'exception dédiée) — on reconnaît les tournures les
+# plus courantes pour afficher un message utile plutôt que la trace brute.
+_ERROR_PATTERNS = [
+    (re.compile(r"private video", re.I), "Cette vidéo est privée."),
+    (
+        re.compile(r"sign in to confirm your age|age.?restrict", re.I),
+        "Vidéo soumise à une vérification d'âge — renseigne YTDLP_COOKIES_FILE "
+        "avec un cookies.txt exporté depuis un compte connecté et majeur.",
+    ),
+    (re.compile(r"members-only|join this channel", re.I), "Vidéo réservée aux membres de la chaîne."),
+    (re.compile(r"video unavailable|has been removed|account.*terminated", re.I),
+     "Cette vidéo n'est plus disponible (supprimée ou retirée par son auteur)."),
+    (re.compile(r"premieres in|live event will begin", re.I),
+     "Cette vidéo n'est pas encore disponible (diffusion à venir)."),
+]
+
+
+def _friendly_error(exc: Exception) -> str:
+    if isinstance(exc, GeoRestrictedError):
+        return "Cette vidéo n'est pas disponible dans la région de ce serveur."
+    if isinstance(exc, UnavailableVideoError):
+        return "Cette vidéo n'est plus disponible."
+    message = str(exc)
+    for pattern, friendly in _ERROR_PATTERNS:
+        if pattern.search(message):
+            return friendly
+    return f"Échec du téléchargement : {message}"
 
 
 def _status_key(video_id: str) -> str:
@@ -91,5 +122,5 @@ async def prepare_video(video_id: str):
         path = await loop.run_in_executor(None, _run_ytdlp, video_id, loop)
         await _set_status(video_id, state=STATUS_READY, path=str(path), ts=str(time.time()))
     except Exception as exc:
-        await _set_status(video_id, state=STATUS_ERROR, error=str(exc), ts=str(time.time()))
+        await _set_status(video_id, state=STATUS_ERROR, error=_friendly_error(exc), ts=str(time.time()))
         raise
