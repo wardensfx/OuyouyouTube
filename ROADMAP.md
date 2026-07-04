@@ -119,3 +119,19 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
   téléchargements concurrents déclenchables par un compte authentifié.
   Acceptable pour un usage perso mono-utilisateur ; à revisiter si le
   projet évolue vers un vrai multi-utilisateurs.
+
+## Tests & CI
+
+- `feat/tests-ci` : premiers tests automatisés + CI GitHub Actions
+  (`.github/workflows/ci.yml`, deux jobs indépendants backend/frontend).
+  - Backend (`pytest`, `server/tests/`) : fonctions pures de
+    `downloader.py`, et vérification que les routes protégées répondent
+    bien 401 sans session (pas besoin de Redis pour ces cas — ils
+    échouent avant tout accès au cache).
+  - Frontend (`vitest`, `front/src/utils/format.test.js`) : les
+    fonctions pures de formatage (`formatDuration`, `formatViewCount`,
+    `formatRelativeDate`).
+  - Volontairement pas encore de tests composants Vue (pas
+    d'`@vue/test-utils` en place) ni de tests touchant l'API YouTube
+    réelle (nécessiterait des credentials Google en CI) — à évaluer si
+    le projet grossit encore.
