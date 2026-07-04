@@ -14,4 +14,9 @@ const routes = [
 export const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    // Restaure la position de scroll au retour (navigation arrière), sinon
+    // repart du haut sur une nouvelle navigation.
+    return savedPosition || { top: 0 }
+  },
 })

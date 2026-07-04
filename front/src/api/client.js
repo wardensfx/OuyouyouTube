@@ -40,6 +40,7 @@ export const api = {
   getTrending: () => request('/home/trending'),
   getSubscriptionsFeed: () => request('/home/subscriptions'),
 
+  getVideoInfo: (videoId) => request(`/video/${videoId}/info`),
   prepareVideo: (videoId) => request(`/video/${videoId}/prepare`, { method: 'POST' }),
   getVideoStatus: (videoId) => request(`/video/${videoId}/status`),
   streamUrl: (videoId) => `/video/${videoId}/stream`,

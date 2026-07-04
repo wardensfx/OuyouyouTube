@@ -5,6 +5,8 @@ import { useLibraryStore } from '../stores/library'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 
+defineOptions({ name: 'PlaylistDetail' })
+
 const props = defineProps({ id: { type: String, required: true } })
 
 const library = useLibraryStore()
@@ -79,6 +81,6 @@ watch(() => props.id, load)
   opacity: 0.7;
 }
 .state--error {
-  color: #ff6b6b;
+  color: var(--danger);
 }
 </style>

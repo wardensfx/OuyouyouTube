@@ -20,8 +20,8 @@ defineProps({ playlist: { type: Object, required: true } })
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  border-radius: 10px;
-  background: #222;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
 }
 .card__title {
   font-size: 0.85rem;

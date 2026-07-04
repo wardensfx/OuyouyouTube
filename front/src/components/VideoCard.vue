@@ -1,10 +1,15 @@
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import { formatRelativeDate } from '../utils/format'
+
+const props = defineProps({
   video: { type: Object, required: true },
   liked: { type: Boolean, default: false },
   removable: { type: Boolean, default: false },
 })
 defineEmits(['like', 'unlike', 'add-to-playlist', 'remove'])
+
+const publishedLabel = computed(() => formatRelativeDate(props.video.published_at))
 </script>
 
 <template>
@@ -12,7 +17,11 @@ defineEmits(['like', 'unlike', 'add-to-playlist', 'remove'])
     <RouterLink :to="{ name: 'player', params: { videoId: video.video_id } }" class="card__link">
       <img :src="video.thumbnail" :alt="video.title" class="card__thumb" loading="lazy" />
       <p class="card__title">{{ video.title }}</p>
-      <p v-if="video.channel" class="card__meta">{{ video.channel }}</p>
+      <p v-if="video.channel || publishedLabel" class="card__meta">
+        <span v-if="video.channel">{{ video.channel }}</span>
+        <span v-if="video.channel && publishedLabel"> · </span>
+        <span v-if="publishedLabel">{{ publishedLabel }}</span>
+      </p>
     </RouterLink>
 
     <div class="card__actions">
@@ -48,8 +57,8 @@ defineEmits(['like', 'unlike', 'add-to-playlist', 'remove'])
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  border-radius: 10px;
-  background: #222;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
 }
 .card__title {
   font-size: 0.85rem;
@@ -74,8 +83,10 @@ defineEmits(['like', 'unlike', 'add-to-playlist', 'remove'])
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 1px solid #2a2a2a;
-  background: #181818;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   color: inherit;
   cursor: pointer;
   font-size: 0.85rem;
@@ -85,10 +96,10 @@ defineEmits(['like', 'unlike', 'add-to-playlist', 'remove'])
   justify-content: center;
 }
 .card__action:hover {
-  background: #232323;
+  background: var(--glass-bg-strong);
 }
 .card__action--active {
-  color: #ff6b6b;
-  border-color: #ff6b6b;
+  color: var(--danger);
+  border-color: var(--danger);
 }
 </style>

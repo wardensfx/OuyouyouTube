@@ -51,7 +51,7 @@ onMounted(load)
     </button>
 
     <div v-if="open" class="switcher__backdrop" @click="open = false" />
-    <div v-if="open" class="switcher__panel">
+    <div v-if="open" class="switcher__panel glass">
       <button
         v-for="a in accounts"
         :key="a.id"
@@ -91,7 +91,7 @@ onMounted(load)
   border-radius: 999px;
 }
 .switcher__trigger:hover {
-  background: #1f1f1f;
+  background: rgba(255, 255, 255, 0.08);
 }
 .switcher__name {
   font-size: 0.85rem;
@@ -128,13 +128,10 @@ onMounted(load)
   position: absolute;
   right: 0;
   top: calc(100% + 0.5rem);
-  background: #181818;
-  border: 1px solid #2a2a2a;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   min-width: 220px;
   padding: 0.4rem;
   z-index: 21;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 .switcher__row {
   display: flex;
@@ -150,10 +147,10 @@ onMounted(load)
   cursor: pointer;
 }
 .switcher__row:hover {
-  background: #232323;
+  background: rgba(255, 255, 255, 0.1);
 }
 .switcher__row--active {
-  background: #232323;
+  background: rgba(255, 255, 255, 0.1);
 }
 .switcher__row-text {
   display: flex;
@@ -175,7 +172,7 @@ onMounted(load)
 }
 .switcher__divider {
   height: 1px;
-  background: #2a2a2a;
+  background: var(--glass-border);
   margin: 0.3rem 0;
 }
 .switcher__action {
@@ -191,9 +188,9 @@ onMounted(load)
   font-size: 0.85rem;
 }
 .switcher__action:hover {
-  background: #232323;
+  background: rgba(255, 255, 255, 0.1);
 }
 .switcher__action--danger {
-  color: #ff6b6b;
+  color: var(--danger);
 }
 </style>

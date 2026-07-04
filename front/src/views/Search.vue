@@ -6,6 +6,8 @@ import { useLibraryStore } from '../stores/library'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 
+defineOptions({ name: 'Search' })
+
 const props = defineProps({ q: { type: String, default: '' } })
 const router = useRouter()
 const library = useLibraryStore()
@@ -81,18 +83,18 @@ watch(
 }
 .search__input {
   flex: 1;
-  background: #181818;
-  border: 1px solid #2a2a2a;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
   padding: 0.6rem 0.75rem;
   color: inherit;
   font-size: 0.95rem;
 }
 .search__submit {
-  background: #f1f1f1;
-  color: #0f0f0f;
+  background: var(--accent);
+  color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0.6rem 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -107,6 +109,6 @@ watch(
   padding: 1rem 0;
 }
 .state--error {
-  color: #ff6b6b;
+  color: var(--danger);
 }
 </style>

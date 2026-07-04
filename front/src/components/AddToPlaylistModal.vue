@@ -39,7 +39,7 @@ async function createAndAdd() {
 
 <template>
   <div class="modal__backdrop" @click="$emit('close')">
-    <div class="modal" @click.stop>
+    <div class="modal glass glass--strong" @click.stop>
       <h2 class="modal__title">Ajouter à une playlist</h2>
 
       <ul class="modal__list">
@@ -68,9 +68,7 @@ async function createAndAdd() {
   z-index: 30;
 }
 .modal {
-  background: #181818;
-  border: 1px solid #2a2a2a;
-  border-radius: 16px 16px 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   width: 100%;
   max-width: 420px;
   padding: 1rem;
@@ -102,7 +100,7 @@ async function createAndAdd() {
   font-size: 0.9rem;
 }
 .modal__row:hover {
-  background: #232323;
+  background: rgba(255, 255, 255, 0.1);
 }
 .modal__empty {
   opacity: 0.6;
@@ -114,21 +112,21 @@ async function createAndAdd() {
   gap: 0.5rem;
   margin-top: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid #2a2a2a;
+  border-top: 1px solid var(--glass-border);
 }
 .modal__input {
   flex: 1;
-  background: #0f0f0f;
-  border: 1px solid #2a2a2a;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--glass-border);
   border-radius: 8px;
   padding: 0.5rem;
   color: inherit;
 }
 .modal__submit {
-  background: #f1f1f1;
-  color: #0f0f0f;
+  background: var(--accent);
+  color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0.5rem 0.9rem;
   font-weight: 600;
   cursor: pointer;
