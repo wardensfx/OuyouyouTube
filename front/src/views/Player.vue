@@ -93,8 +93,58 @@ function onTimeUpdate() {
 const publishedLabel = computed(() => formatRelativeDate(info.value?.published_at))
 const viewsLabel = computed(() => formatViewCount(info.value?.view_count))
 
+// Raccourcis clavier façon YouTube — ignorés si focus dans un champ de
+// saisie (évite d'interférer avec une éventuelle recherche/formulaire) ou
+// si une touche modificatrice est pressée (laisse les raccourcis navigateur
+// natifs, ex. Ctrl+F).
+const SEEK_STEP = 10
+const VOLUME_STEP = 0.1
+
+function onKeydown(e) {
+  const el = videoEl.value
+  if (!el || status.value !== 'ready') return
+  if (e.ctrlKey || e.metaKey || e.altKey) return
+  const tag = e.target?.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) return
+
+  switch (e.key) {
+    case ' ':
+    case 'k':
+      e.preventDefault()
+      el.paused ? el.play() : el.pause()
+      break
+    case 'ArrowLeft':
+    case 'j':
+      e.preventDefault()
+      el.currentTime = Math.max(0, el.currentTime - SEEK_STEP)
+      break
+    case 'ArrowRight':
+    case 'l':
+      e.preventDefault()
+      el.currentTime = Math.min(el.duration || Infinity, el.currentTime + SEEK_STEP)
+      break
+    case 'ArrowUp':
+      e.preventDefault()
+      el.volume = Math.min(1, el.volume + VOLUME_STEP)
+      break
+    case 'ArrowDown':
+      e.preventDefault()
+      el.volume = Math.max(0, el.volume - VOLUME_STEP)
+      break
+    case 'm':
+      el.muted = !el.muted
+      break
+    case 'f':
+      if (document.fullscreenElement) document.exitFullscreen()
+      else el.requestFullscreen()
+      break
+  }
+}
+
 onMounted(start)
+onMounted(() => window.addEventListener('keydown', onKeydown))
 onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown)
   clearTimeout(pollTimer)
   reportFinal(props.videoId)
 })
