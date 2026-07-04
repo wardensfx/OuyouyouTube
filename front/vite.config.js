@@ -31,7 +31,8 @@ export default defineConfig({
             urlPattern: ({ url }) =>
               url.pathname.startsWith('/playlists') ||
               url.pathname.startsWith('/favorites') ||
-              url.pathname.startsWith('/search'),
+              url.pathname.startsWith('/search') ||
+              url.pathname.startsWith('/home'),
             handler: 'NetworkFirst',
             options: { cacheName: 'metadata-cache', expiration: { maxAgeSeconds: 60 * 10 } },
           },
@@ -43,6 +44,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/auth': 'http://127.0.0.1:8000',
+      '/home': 'http://127.0.0.1:8000',
       '/playlists': 'http://127.0.0.1:8000',
       '/favorites': 'http://127.0.0.1:8000',
       '/search': 'http://127.0.0.1:8000',

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.cleanup import start_cleanup_scheduler
-from app import auth, playlists, search, video
+from app import auth, home, playlists, search, video
 
 
 @asynccontextmanager
@@ -26,6 +26,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(home.router)
 app.include_router(playlists.router)
 app.include_router(search.router)
 app.include_router(video.router)

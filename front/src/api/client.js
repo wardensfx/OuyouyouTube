@@ -37,6 +37,9 @@ export const api = {
 
   search: (q) => request(`/search?q=${encodeURIComponent(q)}`),
 
+  getTrending: () => request('/home/trending'),
+  getSubscriptionsFeed: () => request('/home/subscriptions'),
+
   prepareVideo: (videoId) => request(`/video/${videoId}/prepare`, { method: 'POST' }),
   getVideoStatus: (videoId) => request(`/video/${videoId}/status`),
   streamUrl: (videoId) => `/video/${videoId}/stream`,

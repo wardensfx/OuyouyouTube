@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import { api } from '../api/client'
 import { useLibraryStore } from '../stores/library'
 import VideoCard from '../components/VideoCard.vue'
 import PlaylistCard from '../components/PlaylistCard.vue'
@@ -18,13 +19,81 @@ async function submitNewPlaylist() {
   newPlaylistTitle.value = ''
   creating.value = false
 }
+
+const subscriptions = ref([])
+const subscriptionsLoading = ref(false)
+const subscriptionsError = ref(null)
+
+const trending = ref([])
+const trendingLoading = ref(false)
+const trendingError = ref(null)
+
+async function loadSubscriptions() {
+  subscriptionsLoading.value = true
+  subscriptionsError.value = null
+  try {
+    subscriptions.value = await api.getSubscriptionsFeed()
+  } catch (e) {
+    subscriptionsError.value = e.message
+  } finally {
+    subscriptionsLoading.value = false
+  }
+}
+
+async function loadTrending() {
+  trendingLoading.value = true
+  trendingError.value = null
+  try {
+    trending.value = await api.getTrending()
+  } catch (e) {
+    trendingError.value = e.message
+  } finally {
+    trendingLoading.value = false
+  }
+}
+
+onMounted(() => {
+  loadSubscriptions()
+  loadTrending()
+})
 </script>
 
 <template>
   <div class="home">
     <header class="home__header">
-      <h1>Ma bibliothèque</h1>
+      <h1>Accueil</h1>
     </header>
+
+    <section class="section">
+      <h2>Abonnements</h2>
+      <p v-if="subscriptionsLoading" class="state">Chargement…</p>
+      <p v-else-if="subscriptionsError" class="state state--error">{{ subscriptionsError }}</p>
+      <p v-else-if="!subscriptions.length" class="state">Rien de nouveau pour l'instant.</p>
+      <div v-else class="grid">
+        <VideoCard
+          v-for="v in subscriptions"
+          :key="v.video_id"
+          :video="v"
+          @like="library.likeVideo(v.video_id)"
+          @add-to-playlist="modalVideo = v"
+        />
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Tendances</h2>
+      <p v-if="trendingLoading" class="state">Chargement…</p>
+      <p v-else-if="trendingError" class="state state--error">{{ trendingError }}</p>
+      <div v-else class="grid">
+        <VideoCard
+          v-for="v in trending"
+          :key="v.video_id"
+          :video="v"
+          @like="library.likeVideo(v.video_id)"
+          @add-to-playlist="modalVideo = v"
+        />
+      </div>
+    </section>
 
     <p v-if="library.loading" class="state">Chargement…</p>
     <p v-else-if="library.error" class="state state--error">{{ library.error }}</p>
@@ -81,7 +150,7 @@ async function submitNewPlaylist() {
 .section h2 {
   font-size: 1rem;
   opacity: 0.7;
-  margin: 0;
+  margin: 0 0 0.75rem;
 }
 .link-button {
   background: transparent;
@@ -126,7 +195,7 @@ async function submitNewPlaylist() {
   gap: 0.75rem;
 }
 .state {
-  padding: 1rem;
+  padding: 1rem 0;
   opacity: 0.7;
 }
 .state--error {
