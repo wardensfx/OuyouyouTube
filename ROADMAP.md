@@ -60,7 +60,12 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       résultats de recherche, lecteur) — faite au fil des branches précédentes
 - [x] Toasts de confirmation succès/erreur (ajout/retrait playlist, like, etc.)
       — `feat/ui-shell-redesign`
-- [ ] Skeletons de chargement + états vides soignés
+- [x] Skeletons de chargement + états vides soignés — `feat/loading-states`.
+      `SkeletonCard.vue` (shimmer réutilisable via la classe globale
+      `.skeleton`) remplace les "Chargement…" texte dans toutes les grilles
+      de vidéos/playlists ; `EmptyState.vue` (icône + message) remplace les
+      états vides plats, y compris ceux qui n'existaient pas encore
+      (playlist vide, aucun favori/playlist sur l'accueil).
 
 ## Could
 

@@ -5,8 +5,11 @@ import { api } from '../api/client'
 import { useProgressStore } from '../stores/progress'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
+import SkeletonCard from '../components/SkeletonCard.vue'
+import EmptyState from '../components/EmptyState.vue'
 
 defineOptions({ name: 'Search' })
+const SKELETON_COUNT = 6
 
 const progressStore = useProgressStore()
 
@@ -56,9 +59,11 @@ watch(
       <button type="submit" class="search__submit">Rechercher</button>
     </form>
 
-    <p v-if="loading" class="state">Recherche…</p>
+    <div v-if="loading" class="grid">
+      <SkeletonCard v-for="n in SKELETON_COUNT" :key="n" />
+    </div>
     <p v-else-if="error" class="state state--error">{{ error }}</p>
-    <p v-else-if="searched && !results.length" class="state">Aucun résultat.</p>
+    <EmptyState v-else-if="searched && !results.length" message="Aucun résultat." />
 
     <div v-else class="grid">
       <VideoCard
