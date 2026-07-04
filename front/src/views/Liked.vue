@@ -1,12 +1,15 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { ArrowLeft } from '@lucide/vue'
+import { ArrowLeft, Heart } from '@lucide/vue'
 import { useLibraryStore } from '../stores/library'
 import { useProgressStore } from '../stores/progress'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
+import SkeletonCard from '../components/SkeletonCard.vue'
+import EmptyState from '../components/EmptyState.vue'
 
 defineOptions({ name: 'Liked' })
+const SKELETON_COUNT = 6
 
 const library = useLibraryStore()
 const progressStore = useProgressStore()
@@ -23,9 +26,11 @@ const modalVideo = ref(null)
     <RouterLink to="/" class="back"><ArrowLeft :size="16" /> Retour</RouterLink>
     <h1>Vidéos aimées</h1>
 
-    <p v-if="library.loading" class="state">Chargement…</p>
+    <div v-if="library.loading" class="grid">
+      <SkeletonCard v-for="n in SKELETON_COUNT" :key="n" />
+    </div>
     <p v-else-if="library.error" class="state state--error">{{ library.error }}</p>
-    <p v-else-if="!library.favorites.length" class="state">Aucune vidéo aimée pour l'instant.</p>
+    <EmptyState v-else-if="!library.favorites.length" :icon="Heart" message="Aucune vidéo aimée pour l'instant." />
 
     <TransitionGroup v-else tag="div" name="grid" class="grid">
       <VideoCard
