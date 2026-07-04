@@ -1,5 +1,5 @@
 fastapi>=0.115
-uvicorn[standard]>=0.32
+uvicorn[standard]>=0.50.0
 pydantic-settings>=2.5
 yt-dlp>=2024.12.13
 google-auth-oauthlib>=1.2
