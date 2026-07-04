@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { Settings, ChevronUp, ChevronDown, Plus, ChevronRight } from '@lucide/vue'
+import { Settings, ChevronUp, ChevronDown, Plus, ChevronRight, Heart, ListMusic } from '@lucide/vue'
 import { api } from '../api/client'
 import { useLibraryStore } from '../stores/library'
 import { useProgressStore } from '../stores/progress'
@@ -8,6 +8,9 @@ import { usePlaylistOrder } from '../composables/usePlaylistOrder'
 import VideoCard from '../components/VideoCard.vue'
 import PlaylistCard from '../components/PlaylistCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
+import SkeletonCard from '../components/SkeletonCard.vue'
+import EmptyState from '../components/EmptyState.vue'
+import PullToRefresh from '../components/PullToRefresh.vue'
 
 defineOptions({ name: 'Home' })
 
@@ -76,6 +79,15 @@ onMounted(() => {
   loadTrending()
 })
 
+async function refreshAll() {
+  await Promise.all([library.loadAll(), loadSubscriptions(), loadTrending()])
+  progressStore.fetchFor([
+    ...library.favorites.map((v) => v.video_id),
+    ...subscriptions.value.map((v) => v.video_id),
+    ...trending.value.map((v) => v.video_id),
+  ])
+}
+
 // Accueil personnalisable : ordre + visibilité des sections, persistés en
 // local (préférence d'appareil, pas besoin de synchro serveur pour ça).
 const SECTION_LABELS = {
@@ -127,7 +139,7 @@ function move(key, dir) {
 </script>
 
 <template>
-  <div class="home">
+  <PullToRefresh class="home" :refresh="refreshAll">
     <header class="home__header">
       <h1>Accueil</h1>
       <button class="link-button" @click="settingsOpen = !settingsOpen"><Settings :size="16" /> Personnaliser</button>
@@ -153,9 +165,11 @@ function move(key, dir) {
           <h2>Abonnements</h2>
           <RouterLink to="/subscriptions" class="link-button">Voir tout <ChevronRight :size="16" /></RouterLink>
         </div>
-        <p v-if="subscriptionsLoading" class="state">Chargement…</p>
+        <div v-if="subscriptionsLoading" class="grid">
+          <SkeletonCard v-for="n in PREVIEW_COUNT" :key="n" />
+        </div>
         <p v-else-if="subscriptionsError" class="state state--error">{{ subscriptionsError }}</p>
-        <p v-else-if="!subscriptions.length" class="state">Rien de nouveau pour l'instant.</p>
+        <EmptyState v-else-if="!subscriptions.length" message="Rien de nouveau pour l'instant." />
         <div v-else class="grid">
           <VideoCard
             v-for="v in subscriptionsPreview"
@@ -171,8 +185,11 @@ function move(key, dir) {
           <h2>Tendances</h2>
           <RouterLink to="/trending" class="link-button">Voir tout <ChevronRight :size="16" /></RouterLink>
         </div>
-        <p v-if="trendingLoading" class="state">Chargement…</p>
+        <div v-if="trendingLoading" class="grid">
+          <SkeletonCard v-for="n in PREVIEW_COUNT" :key="n" />
+        </div>
         <p v-else-if="trendingError" class="state state--error">{{ trendingError }}</p>
+        <EmptyState v-else-if="!trending.length" message="Rien à afficher pour l'instant." />
         <div v-else class="grid">
           <VideoCard
             v-for="v in trendingPreview"
@@ -192,7 +209,9 @@ function move(key, dir) {
           </div>
         </div>
 
-        <p v-if="library.loading" class="state">Chargement…</p>
+        <div v-if="library.loading" class="grid">
+          <SkeletonCard v-for="n in PREVIEW_COUNT" :key="n" />
+        </div>
         <p v-else-if="library.error" class="state state--error">{{ library.error }}</p>
         <template v-else>
           <form v-if="creating" class="new-playlist" @submit.prevent="submitNewPlaylist">
@@ -200,7 +219,8 @@ function move(key, dir) {
             <button type="submit" class="new-playlist__submit" :disabled="!newPlaylistTitle.trim()">Créer</button>
           </form>
 
-          <TransitionGroup tag="div" name="grid" class="grid">
+          <EmptyState v-if="!playlistsPreview.length" :icon="ListMusic" message="Aucune playlist pour l'instant." />
+          <TransitionGroup v-else tag="div" name="grid" class="grid">
             <PlaylistCard v-for="p in playlistsPreview" :key="p.id" :playlist="p" />
           </TransitionGroup>
         </template>
@@ -211,8 +231,11 @@ function move(key, dir) {
           <h2>Favoris</h2>
           <RouterLink to="/favorites" class="link-button">Voir tout <ChevronRight :size="16" /></RouterLink>
         </div>
-        <p v-if="library.loading" class="state">Chargement…</p>
+        <div v-if="library.loading" class="grid">
+          <SkeletonCard v-for="n in PREVIEW_COUNT" :key="n" />
+        </div>
         <p v-else-if="library.error" class="state state--error">{{ library.error }}</p>
+        <EmptyState v-else-if="!favoritesPreview.length" :icon="Heart" message="Aucun favori pour l'instant." />
         <TransitionGroup v-else tag="div" name="grid" class="grid">
           <VideoCard
             v-for="v in favoritesPreview"
@@ -226,7 +249,7 @@ function move(key, dir) {
     </div>
 
     <AddToPlaylistModal v-if="modalVideo" :video="modalVideo" @close="modalVideo = null" />
-  </div>
+  </PullToRefresh>
 </template>
 
 <style scoped>

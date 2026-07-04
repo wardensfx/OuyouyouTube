@@ -1,10 +1,12 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { ArrowLeft, Pencil, Trash2, Check, X, ChevronUp, ChevronDown, Plus } from '@lucide/vue'
+import { ArrowLeft, Pencil, Trash2, Check, X, ChevronUp, ChevronDown, Plus, ListMusic } from '@lucide/vue'
 import { useLibraryStore } from '../stores/library'
 import { usePlaylistOrder } from '../composables/usePlaylistOrder'
+import EmptyState from '../components/EmptyState.vue'
 
 defineOptions({ name: 'ManagePlaylists' })
+const SKELETON_COUNT = 4
 
 const library = useLibraryStore()
 onMounted(() => {
@@ -63,8 +65,16 @@ async function createPlaylist() {
       </button>
     </form>
 
-    <p v-if="library.loading" class="state">Chargement…</p>
-    <p v-else-if="!ordered.length" class="state">Aucune playlist pour l'instant.</p>
+    <ul v-if="library.loading" class="list">
+      <li v-for="n in SKELETON_COUNT" :key="n" class="row glass">
+        <div class="skeleton row__thumb-skeleton" />
+        <div class="row__body">
+          <div class="skeleton row__title-skeleton" />
+          <div class="skeleton row__meta-skeleton" />
+        </div>
+      </li>
+    </ul>
+    <EmptyState v-else-if="!ordered.length" :icon="ListMusic" message="Aucune playlist pour l'instant." />
 
     <TransitionGroup v-else tag="ul" name="row" class="list">
       <li v-for="(p, index) in ordered" :key="p.id" class="row glass">
@@ -224,6 +234,23 @@ h1 {
   font-size: 0.75rem;
   color: var(--text-dim);
   margin: 0.15rem 0 0;
+}
+.row__thumb-skeleton {
+  width: 96px;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.row__title-skeleton {
+  height: 0.9rem;
+  width: 60%;
+  border-radius: 4px;
+}
+.row__meta-skeleton {
+  height: 0.75rem;
+  width: 35%;
+  margin-top: 0.4rem;
+  border-radius: 4px;
 }
 .row__edit {
   display: flex;

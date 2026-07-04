@@ -42,10 +42,17 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       vidéo (seulement celle de l'item), il manquait un appel groupé
       `videos.list(id=...)` pour l'afficher dans Playlists/Abonnements/
       Recherche (déjà correct pour Favoris/Tendances).
-- [ ] Pages chaîne (vidéos d'une chaîne, infos) + noms de chaîne cliquables
-      partout (vignettes, lecteur) — `feat/channel-pages`
-- [ ] Tire-pour-rafraîchir sur mobile (pattern natif) en haut de l'accueil
-      — `feat/pull-to-refresh`
+- [x] Pages chaîne (vidéos d'une chaîne, infos) + noms de chaîne cliquables
+      partout (vignettes, lecteur) — `feat/channel-pages`. Passe par la
+      playlist "uploads" de la chaîne (`channels.list(contentDetails)` +
+      `playlistItems.list`, 1 unité) plutôt que `search.list` (100 unités)
+      pour lister les vidéos, même logique que les abonnements. Ajout de
+      `channel_id` à tous les payloads vidéo (résumé, items de playlist,
+      recherche, abonnements) pour permettre le lien cliquable.
+- [x] Tire-pour-rafraîchir sur mobile (pattern natif) en haut de l'accueil
+      — `feat/pull-to-refresh`. Composant `PullToRefresh.vue` générique
+      (gestes tactiles seulement, aucun effet sur desktop/souris), recharge
+      abonnements/tendances/playlists/favoris + progression en parallèle.
 
 ## Should
 
@@ -53,7 +60,12 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       résultats de recherche, lecteur) — faite au fil des branches précédentes
 - [x] Toasts de confirmation succès/erreur (ajout/retrait playlist, like, etc.)
       — `feat/ui-shell-redesign`
-- [ ] Skeletons de chargement + états vides soignés
+- [x] Skeletons de chargement + états vides soignés — `feat/loading-states`.
+      `SkeletonCard.vue` (shimmer réutilisable via la classe globale
+      `.skeleton`) remplace les "Chargement…" texte dans toutes les grilles
+      de vidéos/playlists ; `EmptyState.vue` (icône + message) remplace les
+      états vides plats, y compris ceux qui n'existaient pas encore
+      (playlist vide, aucun favori/playlist sur l'accueil).
 
 ## Could
 

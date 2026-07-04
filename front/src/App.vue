@@ -31,7 +31,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
     <div class="app__main">
       <header class="topbar glass">
-        <RouterLink to="/" class="brand">OuyouyouTube</RouterLink>
+        <RouterLink to="/" class="brand">
+          <img src="/icons/icon-192.png" alt="" class="brand__logo" width="28" height="28" />
+          OuyouyouTube
+        </RouterLink>
         <AccountSwitcher />
       </header>
 
@@ -75,11 +78,17 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   border-right: none;
 }
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-weight: 700;
   font-size: 1.05rem;
   color: inherit;
   text-decoration: none;
   letter-spacing: -0.02em;
+}
+.brand__logo {
+  border-radius: var(--radius-sm);
 }
 .app__content {
   flex: 1;

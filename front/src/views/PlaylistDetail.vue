@@ -7,8 +7,11 @@ import { useProgressStore } from '../stores/progress'
 import { useToastStore } from '../stores/toast'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
+import SkeletonCard from '../components/SkeletonCard.vue'
+import EmptyState from '../components/EmptyState.vue'
 
 defineOptions({ name: 'PlaylistDetail' })
+const SKELETON_COUNT = 6
 
 const props = defineProps({ id: { type: String, required: true } })
 
@@ -63,8 +66,11 @@ watch(() => props.id, () => load())
 <template>
   <div class="playlist">
     <RouterLink to="/" class="back"><ArrowLeft :size="16" /> Retour</RouterLink>
-    <p v-if="loading" class="state">Chargement…</p>
+    <div v-if="loading" class="grid">
+      <SkeletonCard v-for="n in SKELETON_COUNT" :key="n" />
+    </div>
     <p v-else-if="error" class="state state--error">{{ error }}</p>
+    <EmptyState v-else-if="!items.length" message="Cette playlist est vide." />
     <TransitionGroup v-else tag="div" name="grid" class="grid">
       <VideoCard
         v-for="v in items"

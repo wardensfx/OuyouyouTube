@@ -188,7 +188,10 @@ watch(() => props.videoId, (_newId, oldId) => {
       <div v-if="info" class="info glass">
         <h1 class="info__title">{{ info.title }}</h1>
         <p class="info__meta">
-          <span v-if="info.channel">{{ info.channel }}</span>
+          <RouterLink v-if="info.channel && info.channel_id" :to="{ name: 'channel', params: { id: info.channel_id } }" class="info__channel-link">
+            {{ info.channel }}
+          </RouterLink>
+          <span v-else-if="info.channel">{{ info.channel }}</span>
           <span v-if="info.channel && (viewsLabel || publishedLabel)"> · </span>
           <span v-if="viewsLabel">{{ viewsLabel }}</span>
           <span v-if="viewsLabel && publishedLabel"> · </span>
@@ -231,6 +234,13 @@ watch(() => props.videoId, (_newId, oldId) => {
   font-size: 0.85rem;
   color: var(--text-dim);
   margin: 0;
+}
+.info__channel-link {
+  color: inherit;
+  text-decoration: none;
+}
+.info__channel-link:hover {
+  text-decoration: underline;
 }
 .info__description {
   font-size: 0.85rem;
