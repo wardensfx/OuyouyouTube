@@ -51,3 +51,11 @@ export function formatViewCount(count) {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')} k vues`
   return `${n} vue${n > 1 ? 's' : ''}`
 }
+
+export function formatSubscriberCount(count) {
+  const n = Number(count)
+  if (!n) return null
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')} M d'abonnés`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')} k abonnés`
+  return `${n} abonné${n > 1 ? 's' : ''}`
+}

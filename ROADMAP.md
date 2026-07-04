@@ -42,10 +42,17 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       vidéo (seulement celle de l'item), il manquait un appel groupé
       `videos.list(id=...)` pour l'afficher dans Playlists/Abonnements/
       Recherche (déjà correct pour Favoris/Tendances).
-- [ ] Pages chaîne (vidéos d'une chaîne, infos) + noms de chaîne cliquables
-      partout (vignettes, lecteur) — `feat/channel-pages`
-- [ ] Tire-pour-rafraîchir sur mobile (pattern natif) en haut de l'accueil
-      — `feat/pull-to-refresh`
+- [x] Pages chaîne (vidéos d'une chaîne, infos) + noms de chaîne cliquables
+      partout (vignettes, lecteur) — `feat/channel-pages`. Passe par la
+      playlist "uploads" de la chaîne (`channels.list(contentDetails)` +
+      `playlistItems.list`, 1 unité) plutôt que `search.list` (100 unités)
+      pour lister les vidéos, même logique que les abonnements. Ajout de
+      `channel_id` à tous les payloads vidéo (résumé, items de playlist,
+      recherche, abonnements) pour permettre le lien cliquable.
+- [x] Tire-pour-rafraîchir sur mobile (pattern natif) en haut de l'accueil
+      — `feat/pull-to-refresh`. Composant `PullToRefresh.vue` générique
+      (gestes tactiles seulement, aucun effet sur desktop/souris), recharge
+      abonnements/tendances/playlists/favoris + progression en parallèle.
 
 ## Should
 
