@@ -11,9 +11,36 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - uses: googleapis/release-please-action@v4
+        id: release
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # A release created with the default GITHUB_TOKEN does not itself trigger
+  # other workflows (GitHub's anti-recursion rule) — publish-images.yml's
+  # `release: published` event would never fire on its own. Dispatch it
+  # explicitly instead: an actions API call made *from* a running workflow
+  # is not subject to that same restriction.
+  trigger-publish-images:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'publish-images.yml',
+              ref: 'main',
+              inputs: { tag: '${{ needs.release-please.outputs.tag_name }}' },
+            })
