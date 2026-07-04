@@ -27,4 +27,10 @@ export const api = {
   prepareVideo: (videoId) => request(`/video/${videoId}/prepare`, { method: 'POST' }),
   getVideoStatus: (videoId) => request(`/video/${videoId}/status`),
   streamUrl: (videoId) => `/video/${videoId}/stream`,
+
+  getAccounts: () => request('/auth/accounts'),
+  activateAccount: (accountId) => request(`/auth/accounts/${accountId}/activate`, { method: 'POST' }),
+  unlinkAccount: (accountId) => request(`/auth/accounts/${accountId}`, { method: 'DELETE' }),
+  loginUrl: ({ link = false } = {}) => `/auth/login${link ? '?link=true' : ''}`,
+  logout: () => request('/auth/logout', { method: 'POST' }),
 }
