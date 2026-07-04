@@ -10,6 +10,11 @@ on:
         description: "Release tag to build and publish (e.g. v0.3.0)"
         required: true
         type: string
+      prerelease:
+        description: "Whether this release is a prerelease (skips the :latest tag)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -34,13 +39,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/ouyouyoutube-${{ matrix.component }}
+          tags: |
+            type=raw,value=${{ inputs.tag }}
+            type=raw,value=latest,enable=${{ !inputs.prerelease }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
       - uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.component }}
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/ouyouyoutube-${{ matrix.component }}:${{ inputs.tag }}
-            ghcr.io/${{ github.repository_owner }}/ouyouyoutube-${{ matrix.component }}:latest
-          labels: |
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
