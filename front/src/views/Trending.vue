@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ArrowLeft } from '@lucide/vue'
 import { api } from '../api/client'
 import { useProgressStore } from '../stores/progress'
@@ -13,6 +13,9 @@ const SKELETON_COUNT = 6
 
 const progressStore = useProgressStore()
 const videos = ref([])
+// Vidéo déjà vue = hors du flux de découverte (contrairement aux
+// Favoris/Playlists, qu'on constitue soi-même).
+const visibleVideos = computed(() => videos.value.filter((v) => !progressStore.items[v.video_id]?.watched))
 const loading = ref(false)
 const error = ref(null)
 const modalVideo = ref(null)
@@ -42,11 +45,11 @@ onMounted(load)
       <SkeletonCard v-for="n in SKELETON_COUNT" :key="n" />
     </div>
     <p v-else-if="error" class="state state--error">{{ error }}</p>
-    <EmptyState v-else-if="!videos.length" message="Rien à afficher pour l'instant." />
+    <EmptyState v-else-if="!visibleVideos.length" message="Rien à afficher pour l'instant." />
 
     <div v-else class="grid">
       <VideoCard
-        v-for="v in videos"
+        v-for="v in visibleVideos"
         :key="v.video_id"
         :video="v"
         @add-to-playlist="modalVideo = v"

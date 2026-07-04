@@ -38,15 +38,24 @@ async function submitNewPlaylist() {
   creating.value = false
 }
 
+// Les vidéos vues sortent des flux de découverte (Abonnements/Tendances) —
+// mais pas des Favoris/Playlists, qui restent des listes qu'on constitue
+// soi-même et où on doit pouvoir retrouver une vidéo déjà vue.
+function notWatched(v) {
+  return !progressStore.items[v.video_id]?.watched
+}
+
 const subscriptions = ref([])
 const subscriptionsLoading = ref(false)
 const subscriptionsError = ref(null)
-const subscriptionsPreview = computed(() => subscriptions.value.slice(0, PREVIEW_COUNT))
+const subscriptionsVisible = computed(() => subscriptions.value.filter(notWatched))
+const subscriptionsPreview = computed(() => subscriptionsVisible.value.slice(0, PREVIEW_COUNT))
 
 const trending = ref([])
 const trendingLoading = ref(false)
 const trendingError = ref(null)
-const trendingPreview = computed(() => trending.value.slice(0, PREVIEW_COUNT))
+const trendingVisible = computed(() => trending.value.filter(notWatched))
+const trendingPreview = computed(() => trendingVisible.value.slice(0, PREVIEW_COUNT))
 
 async function loadSubscriptions() {
   subscriptionsLoading.value = true
@@ -169,7 +178,7 @@ function move(key, dir) {
           <SkeletonCard v-for="n in PREVIEW_COUNT" :key="n" />
         </div>
         <p v-else-if="subscriptionsError" class="state state--error">{{ subscriptionsError }}</p>
-        <EmptyState v-else-if="!subscriptions.length" message="Rien de nouveau pour l'instant." />
+        <EmptyState v-else-if="!subscriptionsVisible.length" message="Rien de nouveau pour l'instant." />
         <div v-else class="grid">
           <VideoCard
             v-for="v in subscriptionsPreview"
@@ -189,7 +198,7 @@ function move(key, dir) {
           <SkeletonCard v-for="n in PREVIEW_COUNT" :key="n" />
         </div>
         <p v-else-if="trendingError" class="state state--error">{{ trendingError }}</p>
-        <EmptyState v-else-if="!trending.length" message="Rien à afficher pour l'instant." />
+        <EmptyState v-else-if="!trendingVisible.length" message="Rien à afficher pour l'instant." />
         <div v-else class="grid">
           <VideoCard
             v-for="v in trendingPreview"
