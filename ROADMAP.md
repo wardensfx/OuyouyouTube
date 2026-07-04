@@ -86,3 +86,10 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
 - Élargir un scope OAuth nécessite de l'ajouter explicitement dans Google
   Cloud Console → OAuth consent screen → Scopes, sinon Google le droppe
   silencieusement de la réponse du token (vécu avec `youtube.readonly`).
+- Déploiement réel (quadlets + Traefik) : Traefik termine le TLS public puis
+  parle en HTTP interne à Caddy. Sans `trusted_proxies` dans le Caddyfile,
+  Caddy recalcule `X-Forwarded-Proto` depuis sa propre connexion (http) et
+  l'envoie tel quel au backend malgré `--proxy-headers` côté uvicorn, ce qui
+  faisait planter `/auth/callback` (`InsecureTransportError`, oauthlib voit
+  un callback OAuth en http). Fixé via `trusted_proxies static private_ranges`
+  dans `front/Caddyfile` (`fix/caddy-trusted-proxies`, mergé).
