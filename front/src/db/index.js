@@ -76,3 +76,8 @@ export async function deleteValue(store, key) {
   const db = await getDb()
   await db.delete(store, key)
 }
+
+export async function clearStore(store) {
+  const db = await getDb()
+  await db.clear(store)
+}

@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto'
 import { openDB } from 'idb'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { reactive } from 'vue'
-import { getValue, setValue, listValues, deleteValue, DB_VERSION, STORES, dbNameFor } from './index'
+import { getValue, setValue, listValues, deleteValue, clearStore, DB_VERSION, STORES, dbNameFor } from './index'
 
 // This module resolves the active account via the API to scope the
 // database per account (see #56) — stub a single fixed active account so
@@ -58,5 +58,12 @@ describe('db (IndexedDB wrapper)', () => {
     const value = reactive({ ids: ['a', 'b'] })
     await expect(setValue('playlist_order', 'reactive', value)).resolves.toBeUndefined()
     expect(await getValue('playlist_order', 'reactive')).toEqual({ ids: ['a', 'b'] })
+  })
+
+  it('clearStore() removes every value in the store', async () => {
+    await setValue('playlist_order', 'k1', 1)
+    await setValue('playlist_order', 'k2', 2)
+    await clearStore('playlist_order')
+    expect(await listValues('playlist_order')).toEqual([])
   })
 })

@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { ArrowLeft, History as HistoryIcon } from '@lucide/vue'
+import { ArrowLeft, History as HistoryIcon, Trash2 } from '@lucide/vue'
 import { useHistoryStore } from '../stores/history'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
@@ -12,12 +12,27 @@ const historyStore = useHistoryStore()
 const modalVideo = ref(null)
 
 onMounted(() => historyStore.load())
+
+function clearHistory() {
+  if (window.confirm("Vider tout l'historique ? Cette action est irréversible.")) {
+    historyStore.clear()
+  }
+}
 </script>
 
 <template>
   <div class="page">
     <RouterLink to="/" class="back"><ArrowLeft :size="16" /> Retour</RouterLink>
-    <h1>Historique</h1>
+    <div class="header">
+      <h1>Historique</h1>
+      <button
+        v-if="historyStore.entries.length"
+        class="link-button"
+        @click="clearHistory"
+      >
+        <Trash2 :size="16" /> Vider l'historique
+      </button>
+    </div>
 
     <EmptyState
       v-if="!historyStore.entries.length"
@@ -51,8 +66,28 @@ onMounted(() => historyStore.load())
   opacity: 0.7;
   text-decoration: none;
 }
-h1 {
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 1rem;
+}
+h1 {
+  margin: 0;
+}
+.link-button {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: 0.8;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.link-button:hover {
+  opacity: 1;
 }
 .grid {
   display: grid;

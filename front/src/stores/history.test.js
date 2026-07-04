@@ -79,4 +79,17 @@ describe('useHistoryStore', () => {
     await reloaded.load()
     expect(reloaded.entries.map((e) => e.video_id)).toEqual(['v1'])
   })
+
+  it('clear() empties the list and persists the deletion', async () => {
+    const store = useHistoryStore()
+    await store.record(video('v1'))
+    await store.record(video('v2'))
+    await store.clear()
+    expect(store.entries).toEqual([])
+
+    setActivePinia(createPinia())
+    const reloaded = useHistoryStore()
+    await reloaded.load()
+    expect(reloaded.entries).toEqual([])
+  })
 })
