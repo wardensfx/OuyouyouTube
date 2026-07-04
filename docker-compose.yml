@@ -9,6 +9,13 @@ x-backend-common: &backend-common
     # plus de ceux demandés dans cette requête — oauthlib traite ça comme une
     # erreur par défaut. Nécessaire aussi en prod, pas juste en dev.
     OAUTHLIB_RELAX_TOKEN_SCOPE: "1"
+    # Ce docker-compose (profils dev/prod) sert à tester en LOCAL, en HTTP
+    # simple (SITE_ADDRESS=:8080 par défaut, pas de domaine/TLS) — le
+    # transport est donc réellement non sécurisé, dans les deux profils.
+    # Le vrai déploiement HTTPS (domaine réel) passe par les quadlets
+    # Podman (services/*.container), qui n'ont pas besoin de ce flag et
+    # font confiance à X-Forwarded-Proto envoyé par Traefik à la place.
+    OAUTHLIB_INSECURE_TRANSPORT: "1"
   depends_on:
     - redis
   restart: unless-stopped
@@ -27,12 +34,6 @@ services:
   backend:
     <<: *backend-common
     profiles: ["dev"]
-    environment:
-      REDIS_URL: redis://redis:6379/0
-      # Dev only: autorise l'échange de token OAuth en http:// (localhost sans TLS).
-      # Ne jamais activer ça en prod (redirect_uri doit être en https).
-      OAUTHLIB_INSECURE_TRANSPORT: "1"
-      OAUTHLIB_RELAX_TOKEN_SCOPE: "1"
     ports:
       - "8000:8000"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -44,7 +45,7 @@ services:
         - action: rebuild
           path: ./server/requirements.txt
 
-  # Prod : docker compose --profile prod up -d --build
+  # Prod (test local) : docker compose --profile prod up -d --build
   # Pas de port publié — seul le frontend (Caddy) doit être joignable
   # depuis l'hôte, comme dans les quadlets Podman.
   backend-prod:
@@ -52,8 +53,9 @@ services:
     profiles: ["prod"]
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
 
-  # Frontend + reverse proxy Caddy — image de prod (SPA buildée + TLS auto).
-  # Pas utilisé en dev (front tourne en direct via `npm run dev` pour le hot-reload).
+  # Frontend + reverse proxy Caddy — image de prod (SPA buildée + TLS auto
+  # si SITE_ADDRESS est un vrai domaine). Pas utilisé en dev (front tourne
+  # en direct via `npm run dev` pour le hot-reload).
   frontend:
     build: ./front
     container_name: ouyouyoutube-frontend
