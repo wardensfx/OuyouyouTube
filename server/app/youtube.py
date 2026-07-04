@@ -74,6 +74,7 @@ async def get_playlist_items(credentials: Credentials, playlist_id: str) -> list
         response = request.execute()
         for item in response.get("items", []):
             items.append({
+                "item_id": item["id"],
                 "video_id": item["contentDetails"]["videoId"],
                 "title": item["snippet"]["title"],
                 "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),

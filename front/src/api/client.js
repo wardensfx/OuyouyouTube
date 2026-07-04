@@ -19,10 +19,21 @@ async function request(path, options = {}) {
   return contentType.includes('application/json') ? res.json() : res
 }
 
+function jsonBody(body) {
+  return { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+}
+
 export const api = {
   getPlaylists: () => request('/playlists'),
+  createPlaylist: (title) => request('/playlists', { method: 'POST', ...jsonBody({ title }) }),
   getPlaylistItems: (playlistId) => request(`/playlists/${playlistId}/items`),
+  addPlaylistItem: (playlistId, videoId) =>
+    request(`/playlists/${playlistId}/items`, { method: 'POST', ...jsonBody({ video_id: videoId }) }),
+  removePlaylistItem: (playlistId, itemId) =>
+    request(`/playlists/${playlistId}/items/${itemId}`, { method: 'DELETE' }),
   getFavorites: () => request('/favorites'),
+  likeVideo: (videoId) => request(`/favorites/${videoId}`, { method: 'PUT' }),
+  unlikeVideo: (videoId) => request(`/favorites/${videoId}`, { method: 'DELETE' }),
 
   prepareVideo: (videoId) => request(`/video/${videoId}/prepare`, { method: 'POST' }),
   getVideoStatus: (videoId) => request(`/video/${videoId}/status`),
