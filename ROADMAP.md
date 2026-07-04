@@ -49,8 +49,10 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       pour lister les vidéos, même logique que les abonnements. Ajout de
       `channel_id` à tous les payloads vidéo (résumé, items de playlist,
       recherche, abonnements) pour permettre le lien cliquable.
-- [ ] Tire-pour-rafraîchir sur mobile (pattern natif) en haut de l'accueil
-      — `feat/pull-to-refresh`
+- [x] Tire-pour-rafraîchir sur mobile (pattern natif) en haut de l'accueil
+      — `feat/pull-to-refresh`. Composant `PullToRefresh.vue` générique
+      (gestes tactiles seulement, aucun effet sur desktop/souris), recharge
+      abonnements/tendances/playlists/favoris + progression en parallèle.
 
 ## Should
 
