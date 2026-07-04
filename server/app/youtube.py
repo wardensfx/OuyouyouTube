@@ -119,6 +119,77 @@ async def search_videos(credentials: Credentials, query: str) -> list[dict]:
     return results
 
 
+# Bornes pour l'agrégation "abonnements" : un appel activities.list par
+# chaîne suivie (1 unité chacun) — on plafonne pour rester raisonnable en
+# quota/latence sur un compte avec beaucoup d'abonnements.
+SUBSCRIPTIONS_CHANNEL_CAP = 15
+SUBSCRIPTIONS_PER_CHANNEL = 5
+
+
+async def get_trending(credentials: Credentials, region: str = "FR") -> list[dict]:
+    """Pas de notion de compte ici (mêmes tendances pour tout le monde dans
+    une région) — le cache n'a donc pas besoin d'être partitionné par compte."""
+    cache_key = f"trending:{region}"
+    cached = await get_json(cache_key)
+    if cached is not None:
+        return cached
+
+    yt = _client(credentials)
+    videos = []
+    request = yt.videos().list(
+        part="snippet,contentDetails", chart="mostPopular", regionCode=region, maxResults=25
+    )
+    while request is not None:
+        response = request.execute()
+        for item in response.get("items", []):
+            videos.append(_video_summary(item))
+        request = yt.videos().list_next(request, response)
+
+    await set_json(cache_key, videos, ttl=settings.metadata_ttl_seconds)
+    return videos
+
+
+async def get_subscriptions_feed(credentials: Credentials, account_id: str) -> list[dict]:
+    """Pas d'équivalent officiel à `activities.list(home=true)` (déprécié) :
+    on reconstruit un flux en interrogeant les dernières activités de chaque
+    chaîne suivie, plafonné à SUBSCRIPTIONS_CHANNEL_CAP chaînes."""
+    cache_key = f"subscriptions_feed:{account_id}"
+    cached = await get_json(cache_key)
+    if cached is not None:
+        return cached
+
+    yt = _client(credentials)
+    channel_ids = []
+    request = yt.subscriptions().list(part="snippet", mine=True, maxResults=50, order="alphabetical")
+    while request is not None and len(channel_ids) < SUBSCRIPTIONS_CHANNEL_CAP:
+        response = request.execute()
+        for item in response.get("items", []):
+            channel_ids.append(item["snippet"]["resourceId"]["channelId"])
+        request = yt.subscriptions().list_next(request, response)
+    channel_ids = channel_ids[:SUBSCRIPTIONS_CHANNEL_CAP]
+
+    videos = []
+    for channel_id in channel_ids:
+        response = yt.activities().list(
+            part="snippet,contentDetails", channelId=channel_id, maxResults=SUBSCRIPTIONS_PER_CHANNEL
+        ).execute()
+        for item in response.get("items", []):
+            upload = item.get("contentDetails", {}).get("upload")
+            if not upload:
+                continue  # on ignore les autres types d'activité (likes, playlists créées, etc.)
+            videos.append({
+                "video_id": upload["videoId"],
+                "title": item["snippet"]["title"],
+                "channel": item["snippet"]["channelTitle"],
+                "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
+                "published_at": item["snippet"]["publishedAt"],
+            })
+
+    videos.sort(key=lambda v: v["published_at"], reverse=True)
+    await set_json(cache_key, videos, ttl=settings.metadata_ttl_seconds)
+    return videos
+
+
 async def create_playlist(credentials: Credentials, account_id: str, title: str) -> dict:
     yt = _client(credentials)
     response = yt.playlists().insert(part="snippet", body={"snippet": {"title": title}}).execute()

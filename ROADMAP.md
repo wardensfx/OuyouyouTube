@@ -7,18 +7,19 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
 ## Must
 
 - [x] Multi-comptes Google (switcher, un seul humain, plusieurs comptes liés)
-      — `feat/multi-account-auth` (mergé sur `main` ; 2 commits de fix
-      poussés après coup — scope OAuth, logout/avatar — encore en PR à part,
-      pas encore mergés)
-- [ ] Scope OAuth étendu (`youtube` complet) + gestion playlists/favoris
+      — `feat/multi-account-auth` (mergé, fixes inclus)
+- [x] Scope OAuth étendu (`youtube` complet) + gestion playlists/favoris
       (créer une playlist, ajouter/retirer une vidéo, like/unlike)
-      — `feat/playlist-management` (PR ouverte, pas encore mergée)
-- [ ] Recherche (barre + page de résultats) — `feat/search`
+      — `feat/playlist-management` (mergé)
+- [x] Recherche (barre + page de résultats) — `feat/search` (mergé)
 - [ ] Page d'accueil : tendances + dernières vidéos des abonnements
       — `feat/home-feed`
 - [ ] Refonte UI : navigation (sidebar/topbar), thème **glassmorphism dark**
       (demande explicite : look moderne, verre dépoli/flou, sombre),
-      cartes/menus — `feat/ui-shell-redesign`
+      cartes/menus — `feat/ui-shell-redesign`. Inclut aussi la **restauration
+      d'état à la navigation retour** (scroll, recherche en cours, etc.) —
+      `scrollBehavior` de vue-router + `<KeepAlive>` sur les vues
+      concernées, pas juste un souci esthétique.
 
 ## Should
 
