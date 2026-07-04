@@ -1,6 +1,6 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import { Settings, ChevronUp, ChevronDown, Plus } from '@lucide/vue'
+import { computed, onMounted, ref } from 'vue'
+import { Settings, ChevronUp, ChevronDown, Plus, ChevronRight } from '@lucide/vue'
 import { api } from '../api/client'
 import { useLibraryStore } from '../stores/library'
 import { usePlaylistOrder } from '../composables/usePlaylistOrder'
@@ -10,10 +10,14 @@ import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 
 defineOptions({ name: 'Home' })
 
+const PREVIEW_COUNT = 6
+
 const library = useLibraryStore()
 onMounted(() => library.loadAll())
 
 const { ordered: orderedPlaylists } = usePlaylistOrder(() => library.playlists)
+const playlistsPreview = computed(() => orderedPlaylists.value.slice(0, PREVIEW_COUNT))
+const favoritesPreview = computed(() => library.favorites.slice(0, PREVIEW_COUNT))
 
 const modalVideo = ref(null)
 const creating = ref(false)
@@ -29,10 +33,12 @@ async function submitNewPlaylist() {
 const subscriptions = ref([])
 const subscriptionsLoading = ref(false)
 const subscriptionsError = ref(null)
+const subscriptionsPreview = computed(() => subscriptions.value.slice(0, PREVIEW_COUNT))
 
 const trending = ref([])
 const trendingLoading = ref(false)
 const trendingError = ref(null)
+const trendingPreview = computed(() => trending.value.slice(0, PREVIEW_COUNT))
 
 async function loadSubscriptions() {
   subscriptionsLoading.value = true
@@ -136,13 +142,16 @@ function move(key, dir) {
 
     <div class="home__sections">
       <section v-show="!isHidden('subscriptions')" class="section" :style="{ order: orderIndex('subscriptions') }">
-        <h2>Abonnements</h2>
+        <div class="section__header">
+          <h2>Abonnements</h2>
+          <RouterLink to="/subscriptions" class="link-button">Voir tout <ChevronRight :size="16" /></RouterLink>
+        </div>
         <p v-if="subscriptionsLoading" class="state">Chargement…</p>
         <p v-else-if="subscriptionsError" class="state state--error">{{ subscriptionsError }}</p>
         <p v-else-if="!subscriptions.length" class="state">Rien de nouveau pour l'instant.</p>
         <div v-else class="grid">
           <VideoCard
-            v-for="v in subscriptions"
+            v-for="v in subscriptionsPreview"
             :key="v.video_id"
             :video="v"
             @add-to-playlist="modalVideo = v"
@@ -151,12 +160,15 @@ function move(key, dir) {
       </section>
 
       <section v-show="!isHidden('trending')" class="section" :style="{ order: orderIndex('trending') }">
-        <h2>Tendances</h2>
+        <div class="section__header">
+          <h2>Tendances</h2>
+          <RouterLink to="/trending" class="link-button">Voir tout <ChevronRight :size="16" /></RouterLink>
+        </div>
         <p v-if="trendingLoading" class="state">Chargement…</p>
         <p v-else-if="trendingError" class="state state--error">{{ trendingError }}</p>
         <div v-else class="grid">
           <VideoCard
-            v-for="v in trending"
+            v-for="v in trendingPreview"
             :key="v.video_id"
             :video="v"
             @add-to-playlist="modalVideo = v"
@@ -167,7 +179,10 @@ function move(key, dir) {
       <section v-show="!isHidden('playlists')" class="section" :style="{ order: orderIndex('playlists') }">
         <div class="section__header">
           <h2>Playlists</h2>
-          <button class="link-button" @click="creating = !creating"><Plus :size="16" /> Nouvelle</button>
+          <div class="section__header-actions">
+            <button class="link-button" @click="creating = !creating"><Plus :size="16" /> Nouvelle</button>
+            <RouterLink to="/playlists/manage" class="link-button">Voir tout <ChevronRight :size="16" /></RouterLink>
+          </div>
         </div>
 
         <p v-if="library.loading" class="state">Chargement…</p>
@@ -179,18 +194,21 @@ function move(key, dir) {
           </form>
 
           <TransitionGroup tag="div" name="grid" class="grid">
-            <PlaylistCard v-for="p in orderedPlaylists" :key="p.id" :playlist="p" />
+            <PlaylistCard v-for="p in playlistsPreview" :key="p.id" :playlist="p" />
           </TransitionGroup>
         </template>
       </section>
 
       <section v-show="!isHidden('favorites')" class="section" :style="{ order: orderIndex('favorites') }">
-        <h2>Favoris</h2>
+        <div class="section__header">
+          <h2>Favoris</h2>
+          <RouterLink to="/favorites" class="link-button">Voir tout <ChevronRight :size="16" /></RouterLink>
+        </div>
         <p v-if="library.loading" class="state">Chargement…</p>
         <p v-else-if="library.error" class="state state--error">{{ library.error }}</p>
         <TransitionGroup v-else tag="div" name="grid" class="grid">
           <VideoCard
-            v-for="v in library.favorites"
+            v-for="v in favoritesPreview"
             :key="v.video_id"
             :video="v"
             :show-like="false"
@@ -265,21 +283,27 @@ function move(key, dir) {
   justify-content: space-between;
   margin-bottom: 0.75rem;
 }
+.section__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
 .section h2 {
   font-size: 1rem;
   opacity: 0.7;
-  margin: 0 0 0.75rem;
+  margin: 0;
 }
 .link-button {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.25rem;
   background: transparent;
   border: none;
   color: inherit;
   opacity: 0.8;
   font-size: 0.85rem;
   cursor: pointer;
+  text-decoration: none;
 }
 .link-button:hover {
   opacity: 1;
