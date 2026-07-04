@@ -8,7 +8,11 @@ import { formatDuration, formatRelativeDate } from '../utils/format'
 const props = defineProps({
   video: { type: Object, required: true },
   removable: { type: Boolean, default: false },
-  showLike: { type: Boolean, default: true },
+  // Le Like vit désormais sous le lecteur (voir useLikeButton/Player.vue) —
+  // redondant sur la plupart des grilles, donc off par défaut. Seule la
+  // page "Vidéos aimées" le réactive explicitement, pour pouvoir retirer
+  // un favori directement depuis la grille.
+  showLike: { type: Boolean, default: false },
 })
 const emit = defineEmits(['add-to-playlist', 'remove'])
 
@@ -89,16 +93,6 @@ async function toggleWatched() {
         <Plus :size="14" />
       </button>
 
-      <button
-        v-if="removable"
-        class="card__action"
-        :disabled="!!pending"
-        title="Retirer de cette playlist"
-        @click="act('remove')"
-      >
-        <X :size="14" />
-      </button>
-
       <div class="card__menu">
         <button class="card__action" title="Plus d'options" @click="menuOpen = !menuOpen">
           <MoreVertical :size="14" />
@@ -108,6 +102,10 @@ async function toggleWatched() {
           <button class="card__menu-item" @click="toggleWatched">
             <component :is="watched ? EyeOff : Eye" :size="14" />
             {{ watched ? 'Marquer comme non vue' : 'Marquer comme vue' }}
+          </button>
+          <button v-if="removable" class="card__menu-item" @click="act('remove'); menuOpen = false">
+            <X :size="14" />
+            Retirer de cette playlist
           </button>
         </div>
       </div>
