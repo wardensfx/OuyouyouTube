@@ -8,6 +8,7 @@ import Liked from '../views/Liked.vue'
 import Subscriptions from '../views/Subscriptions.vue'
 import Trending from '../views/Trending.vue'
 import Channel from '../views/Channel.vue'
+import History from '../views/History.vue'
 
 const routes = [
   { path: '/', name: 'home', component: Home },
@@ -16,6 +17,7 @@ const routes = [
   { path: '/favorites', name: 'favorites', component: Liked },
   { path: '/subscriptions', name: 'subscriptions', component: Subscriptions },
   { path: '/trending', name: 'trending', component: Trending },
+  { path: '/history', name: 'history', component: History },
   { path: '/channel/:id', name: 'channel', component: Channel, props: true },
   { path: '/watch/:videoId', name: 'player', component: Player, props: true },
   { path: '/search', name: 'search', component: Search, props: (route) => ({ q: route.query.q || '' }) },

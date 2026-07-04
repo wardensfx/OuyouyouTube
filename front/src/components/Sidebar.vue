@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Home, Search, Rss, TrendingUp, Heart, Settings2 } from '@lucide/vue'
+import { Home, Search, Rss, TrendingUp, Heart, History, Settings2 } from '@lucide/vue'
 import { useLibraryStore } from '../stores/library'
 import { usePlaylistOrder } from '../composables/usePlaylistOrder'
 
@@ -39,6 +39,9 @@ const appVersion = __APP_VERSION__
       </RouterLink>
       <RouterLink to="/favorites" class="sidebar__link" active-class="sidebar__link--active">
         <Heart :size="18" /> Vidéos aimées
+      </RouterLink>
+      <RouterLink to="/history" class="sidebar__link" active-class="sidebar__link--active">
+        <History :size="18" /> Historique
       </RouterLink>
     </nav>
 

@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect } from 'vitest'
+import { reactive } from 'vue'
 import { getValue, setValue, listValues, deleteValue } from './index'
 
 describe('db (IndexedDB wrapper)', () => {
@@ -28,5 +29,11 @@ describe('db (IndexedDB wrapper)', () => {
     await setValue('playlist_order', 'to-delete', 'x')
     await deleteValue('playlist_order', 'to-delete')
     expect(await getValue('playlist_order', 'to-delete')).toBeUndefined()
+  })
+
+  it('accepts a Vue reactive Proxy without throwing (regression: DataCloneError)', async () => {
+    const value = reactive({ ids: ['a', 'b'] })
+    await expect(setValue('playlist_order', 'reactive', value)).resolves.toBeUndefined()
+    expect(await getValue('playlist_order', 'reactive')).toEqual({ ids: ['a', 'b'] })
   })
 })

@@ -6,8 +6,8 @@ import { openDB } from 'idb'
 // them could later be mirrored to a backend endpoint as-is, and so a
 // future sync layer can do last-write-wins without a schema change.
 const DB_NAME = 'ouyouyoutube'
-const DB_VERSION = 1
-const STORES = ['playlist_order']
+const DB_VERSION = 2
+const STORES = ['playlist_order', 'history']
 
 let dbPromise
 
@@ -34,7 +34,12 @@ export async function getValue(store, key) {
 
 export async function setValue(store, key, value) {
   const db = await getDb()
-  await db.put(store, { key, value, updated_at: new Date().toISOString() })
+  // JSON round-trip: strips Vue's reactive Proxy wrapping (which
+  // IndexedDB's structured-clone algorithm can choke on if a caller
+  // passes Pinia state straight through) and enforces the "plain
+  // JSON-serializable value" contract these records are meant to keep.
+  const plain = JSON.parse(JSON.stringify(value))
+  await db.put(store, { key, value: plain, updated_at: new Date().toISOString() })
 }
 
 export async function listValues(store) {
