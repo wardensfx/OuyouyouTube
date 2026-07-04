@@ -72,7 +72,12 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
 - [x] Tri/filtre des vidéos dans une playlist — `feat/playlist-sort-filter`.
       Filtre texte (titre/chaîne) + tri (ordre playlist, titre, date,
       durée), tout côté client (les items sont déjà chargés en entier).
-- [ ] Raccourcis clavier (lecteur, navigation)
+- [x] Raccourcis clavier (lecteur, navigation) — `feat/keyboard-shortcuts`.
+      Lecteur façon YouTube (espace/k lecture, flèches/j-l seek ±10s,
+      flèches haut/bas volume, m mute, f plein écran). Navigation : "/"
+      global vers la recherche avec focus auto. Tous ignorés si le focus
+      est déjà dans un champ de saisie ou qu'une touche modificatrice est
+      pressée.
 
 ## Won't (pour l'instant)
 
