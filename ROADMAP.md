@@ -26,12 +26,12 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       collisions avec les routes du front), séparation dev/prod des
       services Docker Compose (`backend`/`backend-prod`, plus de port 8000
       exposé en profil prod).
-- [ ] Pages dédiées par section (Abonnements, Tendances, chaque Playlist)
+- [x] Pages dédiées par section (Abonnements, Tendances, chaque Playlist)
       accessibles depuis le menu, avec un lien "Voir tout" + accueil moins
-      chargé (aperçu limité par section) — `feat/section-pages` (PR ouverte,
-      pas encore mergée). Playlists/Favoris avaient déjà leur page dédiée
-      (`/playlists/manage`, `/favorites`) — ajouté `/subscriptions` et
-      `/trending`, entrées de sidebar, accueil limité à 6 vignettes/section.
+      chargé (aperçu limité par section) — `feat/section-pages` (mergé).
+      Playlists/Favoris avaient déjà leur page dédiée (`/playlists/manage`,
+      `/favorites`) — ajouté `/subscriptions` et `/trending`, entrées de
+      sidebar, accueil limité à 6 vignettes/section.
 - [ ] Reprises en cours : position de lecture + statut vu/non vu par
       compte/vidéo, barre de progression sous les vignettes, menu "…" sous
       chaque vignette (marquer vu/non vu) — `feat/watch-progress`
