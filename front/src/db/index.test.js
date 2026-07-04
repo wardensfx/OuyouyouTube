@@ -1,9 +1,32 @@
 import 'fake-indexeddb/auto'
-import { describe, it, expect } from 'vitest'
+import { openDB } from 'idb'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { reactive } from 'vue'
-import { getValue, setValue, listValues, deleteValue } from './index'
+import { getValue, setValue, listValues, deleteValue, DB_VERSION, STORES, dbNameFor } from './index'
+
+// This module resolves the active account via the API to scope the
+// database per account (see #56) — stub a single fixed active account so
+// tests don't depend on a real backend.
+vi.mock('../api/client', () => ({
+  api: { getAccounts: () => Promise.resolve([{ id: 'test-account', active: true }]) },
+}))
 
 describe('db (IndexedDB wrapper)', () => {
+  beforeEach(async () => {
+    // The connection this module opens is memoized at module scope, so it
+    // survives across tests in this file — clear both stores directly (via
+    // an independent connection to the same database) for real isolation.
+    const db = await openDB(dbNameFor('test-account'), DB_VERSION, {
+      upgrade(db) {
+        for (const name of STORES) {
+          if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: 'key' })
+        }
+      },
+    })
+    for (const name of STORES) await db.clear(name)
+    db.close()
+  })
+
   it('returns undefined for a missing key', async () => {
     expect(await getValue('playlist_order', 'missing')).toBeUndefined()
   })

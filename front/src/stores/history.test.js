@@ -1,8 +1,16 @@
 import 'fake-indexeddb/auto'
 import { openDB } from 'idb'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { DB_VERSION, STORES, dbNameFor } from '../db'
 import { useHistoryStore } from './history'
+
+// db/index.js resolves the active account via the API to scope the
+// database per account (see #56) — stub a single fixed active account so
+// tests don't depend on a real backend.
+vi.mock('../api/client', () => ({
+  api: { getAccounts: () => Promise.resolve([{ id: 'test-account', active: true }]) },
+}))
 
 const video = (id, title = `Title ${id}`) => ({
   video_id: id,
@@ -19,9 +27,9 @@ describe('useHistoryStore', () => {
     // db/index.js memoizes its IndexedDB connection at module scope, so it
     // survives across tests in this file — clear its data directly (via an
     // independent connection to the same database) for real test isolation.
-    const db = await openDB('ouyouyoutube', 2, {
+    const db = await openDB(dbNameFor('test-account'), DB_VERSION, {
       upgrade(db) {
-        for (const name of ['playlist_order', 'history']) {
+        for (const name of STORES) {
           if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: 'key' })
         }
       },
