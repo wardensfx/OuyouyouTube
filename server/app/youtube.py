@@ -7,7 +7,7 @@ import json
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-from app.cache import get_json, set_json
+from app.cache import get_json, get_redis, set_json
 from app.config import settings
 
 
@@ -15,8 +15,8 @@ def _client(credentials: Credentials):
     return build("youtube", "v3", credentials=credentials)
 
 
-async def get_my_playlists(credentials: Credentials) -> list[dict]:
-    cache_key = f"playlists:{credentials.client_id}:{_token_fingerprint(credentials)}"
+async def get_my_playlists(credentials: Credentials, account_id: str) -> list[dict]:
+    cache_key = f"playlists:{account_id}"
     cached = await get_json(cache_key)
     if cached is not None:
         return cached
@@ -39,9 +39,9 @@ async def get_my_playlists(credentials: Credentials) -> list[dict]:
     return playlists
 
 
-async def get_liked_videos(credentials: Credentials) -> list[dict]:
+async def get_liked_videos(credentials: Credentials, account_id: str) -> list[dict]:
     """Favoris / vidéos likées de l'utilisateur."""
-    cache_key = f"liked:{_token_fingerprint(credentials)}"
+    cache_key = f"liked:{account_id}"
     cached = await get_json(cache_key)
     if cached is not None:
         return cached
@@ -95,6 +95,32 @@ def _video_summary(item: dict) -> dict:
     }
 
 
-def _token_fingerprint(credentials: Credentials) -> str:
-    # simple hash non-sensible pour partitionner le cache par utilisateur
-    return str(hash(credentials.token))[-10:]
+async def create_playlist(credentials: Credentials, account_id: str, title: str) -> dict:
+    yt = _client(credentials)
+    response = yt.playlists().insert(part="snippet", body={"snippet": {"title": title}}).execute()
+    await get_redis().delete(f"playlists:{account_id}")
+    return {"id": response["id"], "title": response["snippet"]["title"], "thumbnail": None, "item_count": 0}
+
+
+async def add_playlist_item(credentials: Credentials, account_id: str, playlist_id: str, video_id: str) -> dict:
+    yt = _client(credentials)
+    response = yt.playlistItems().insert(
+        part="snippet",
+        body={"snippet": {"playlistId": playlist_id, "resourceId": {"kind": "youtube#video", "videoId": video_id}}},
+    ).execute()
+    await get_redis().delete(f"playlist_items:{playlist_id}")
+    await get_redis().delete(f"playlists:{account_id}")
+    return {"item_id": response["id"], "video_id": video_id, "position": response["snippet"]["position"]}
+
+
+async def remove_playlist_item(credentials: Credentials, account_id: str, playlist_id: str, item_id: str):
+    yt = _client(credentials)
+    yt.playlistItems().delete(id=item_id).execute()
+    await get_redis().delete(f"playlist_items:{playlist_id}")
+    await get_redis().delete(f"playlists:{account_id}")
+
+
+async def rate_video(credentials: Credentials, account_id: str, video_id: str, liked: bool):
+    yt = _client(credentials)
+    yt.videos().rate(id=video_id, rating="like" if liked else "none").execute()
+    await get_redis().delete(f"liked:{account_id}")
