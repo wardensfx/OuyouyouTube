@@ -50,12 +50,22 @@ npm run build   # also checks that the production build passes
 
 - **Branches**: `feat/<short-name>` for a feature, `fix/<short-name>` for a
   bug fix, `docs/<short-name>` for documentation.
-- **Commits**: a short, imperative message describing *why* rather than
-  *what* (the diff already shows the what).
+- **Commits / PR titles**: follow [Conventional Commits](https://www.conventionalcommits.org/)
+  (`feat:`, `fix:`, `docs:`, `chore:`, ...), describing *why* rather than
+  *what* (the diff already shows the what). Squash-merged PR titles become
+  the commit message on `main`, so the PR title itself must follow this
+  format — `release-please` (see below) reads it to compute the next
+  version and changelog entry. `feat:` and `fix:` trigger a release;
+  `feat!:`/a `BREAKING CHANGE:` footer trigger a major bump.
 - **Roadmap**: [`ROADMAP.md`](ROADMAP.md) acts as memory between work
   sessions — check off items and document any important decision made
   along the way in a PR (known limitations, non-obvious implementation
   choices).
+- **Releases**: automated by [`release-please`](https://github.com/googleapis/release-please)
+  (`.github/workflows/release-please.yml`). Merges to `main` update a
+  standing "release PR" that bumps the version and `CHANGELOG.md`;
+  merging that PR cuts the actual GitHub Release and tag. No manual
+  tagging needed.
 
 ## Submitting a PR
 
