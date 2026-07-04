@@ -1,39 +1,38 @@
-# Contribuer à OuyouyouTube
+# Contributing to OuyouyouTube
 
-Merci de l'intérêt porté au projet ! Ce document résume comment mettre en
-place un environnement de dev et proposer une contribution.
+Thanks for your interest in the project! This document summarizes how to
+set up a dev environment and submit a contribution.
 
-## Avant de commencer
+## Before you start
 
-Ce projet est né d'un usage strictement personnel (voir l'avertissement
-légal dans le [`README.md`](README.md#️-avertissement-légal)). Les
-contributions sont bienvenues tant qu'elles restent dans cet esprit : un
-client YouTube personnel, pas un outil de distribution de contenu.
+This project was born out of strictly personal use (see the legal
+disclaimer in [`README.md`](README.md#legal-disclaimer)). Contributions are
+welcome as long as they stay within that spirit: a personal YouTube
+client, not a content-distribution tool.
 
-## Principes du projet
+## Project principles
 
-- **Le moins de code custom possible** : avant d'écrire du code pour un
-  problème générique (requêtes `Range`, retry, cache, auth, scheduling...),
-  vérifie si une lib standard le fait déjà. C'est le principe directeur du
-  projet, voir le README.
-- `yt-dlp` reste isolé dans `server/app/downloader.py` — jamais appelé
-  ailleurs dans le code.
-- Aucun token OAuth ne doit jamais atterrir côté client (cookie,
-  localStorage, etc.) — les credentials restent en Redis, le cookie ne
-  contient qu'un `session_id` opaque.
-- Les vidéos ne doivent jamais persister au-delà du TTL configuré — toute
-  nouvelle fonctionnalité touchant au stockage doit respecter ce principe.
+- **As little custom code as possible**: before writing code for a generic
+  problem (`Range` requests, retries, caching, auth, scheduling...), check
+  whether a standard library already handles it. This is the project's
+  guiding principle — see the README.
+- `yt-dlp` stays isolated in `server/app/downloader.py` — never called
+  anywhere else in the code.
+- No OAuth token should ever reach the client (cookie, localStorage,
+  etc.) — credentials stay in Redis, the cookie only holds an opaque
+  `session_id`.
+- Videos must never persist beyond the configured TTL — any new feature
+  touching storage must respect this principle.
 
-## Setup de développement
+## Dev setup
 
-Voir la section [Démarrage rapide](README.md#démarrage-rapide) du README
-pour lancer le backend (FastAPI + Redis) et le frontend (Vue + Vite) en
-local.
+See the [Quick start](README.md#quick-start) section of the README to run
+the backend (FastAPI + Redis) and the frontend (Vue + Vite) locally.
 
-Tu auras besoin de tes propres identifiants OAuth Google Cloud (voir le
-README) pour tester le flow d'authentification de bout en bout.
+You'll need your own Google Cloud OAuth credentials (see the README) to
+test the authentication flow end to end.
 
-## Lancer les tests
+## Running the tests
 
 ```bash
 # Backend
@@ -44,36 +43,36 @@ pytest -v
 # Frontend
 cd front
 npm run test
-npm run build   # vérifie aussi que le build de prod passe
+npm run build   # also checks that the production build passes
 ```
 
 ## Conventions
 
-- **Branches** : `feat/<nom-court>` pour une fonctionnalité, `fix/<nom-court>`
-  pour un correctif, `docs/<nom-court>` pour de la documentation.
-- **Commits** : message court à l'impératif décrivant le *pourquoi* plutôt
-  que le *quoi* (le diff montre déjà le quoi).
-- **Roadmap** : [`ROADMAP.md`](ROADMAP.md) sert de mémoire entre les
-  sessions de travail — coche les cases et documente les décisions
-  importantes prises au fil d'une PR (limites connues, choix
-  d'implémentation non évidents).
+- **Branches**: `feat/<short-name>` for a feature, `fix/<short-name>` for a
+  bug fix, `docs/<short-name>` for documentation.
+- **Commits**: a short, imperative message describing *why* rather than
+  *what* (the diff already shows the what).
+- **Roadmap**: [`ROADMAP.md`](ROADMAP.md) acts as memory between work
+  sessions — check off items and document any important decision made
+  along the way in a PR (known limitations, non-obvious implementation
+  choices).
 
-## Proposer une PR
+## Submitting a PR
 
-1. Fork le dépôt, crée une branche depuis `main`.
-2. Fais tes changements, en gardant chaque PR focalisée sur un seul sujet.
-3. Vérifie que les tests et le build passent en local (voir ci-dessus) — la
-   CI GitHub Actions les relance de toute façon sur chaque PR.
-4. Ouvre la PR en décrivant le *pourquoi* du changement et comment tu l'as
-   vérifié (voir le template de PR).
-5. Mets à jour `ROADMAP.md` si ta PR ferme un item de la liste ou en ajoute
-   un nouveau.
+1. Fork the repo, create a branch off `main`.
+2. Make your changes, keeping each PR focused on a single topic.
+3. Verify tests and the build pass locally (see above) — GitHub Actions CI
+   re-runs them on every PR anyway.
+4. Open the PR describing *why* the change is needed and how you verified
+   it (see the PR template).
+5. Update `ROADMAP.md` if your PR closes an item on the list or adds a new
+   one.
 
-## Signaler un bug ou proposer une fonctionnalité
+## Reporting a bug or requesting a feature
 
-Utilise les templates d'issue GitHub. Pour une vulnérabilité de sécurité,
-suis plutôt [`SECURITY.md`](SECURITY.md) — pas d'issue publique.
+Use the GitHub issue templates. For a security vulnerability, follow
+[`SECURITY.md`](SECURITY.md) instead — no public issue.
 
-## Code de conduite
+## Code of conduct
 
-Ce projet suit le [Contributor Covenant](CODE_OF_CONDUCT.md).
+This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).

@@ -3,123 +3,122 @@
 [![CI](https://github.com/wardensfx/OuyouyouTube/actions/workflows/ci.yml/badge.svg)](https://github.com/wardensfx/OuyouyouTube/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Client YouTube personnel : une PWA qui reproduit le fonctionnement de l'app
-officielle (playlists, favoris, abonnements, recherche, accueil) mais dont le
-visionnage est streamé depuis ton propre backend. Celui-ci télécharge la
-vidéo via [yt-dlp](https://github.com/yt-dlp/yt-dlp), la sert avec support du
-seek, puis la supprime automatiquement après un délai configurable. **Aucune
-vidéo n'est stockée durablement.**
+A personal YouTube client: a PWA that reproduces the official app's
+experience (playlists, favorites, subscriptions, search, home feed), but
+playback is streamed from your own backend. That backend downloads the
+video via [yt-dlp](https://github.com/yt-dlp/yt-dlp), serves it with seek
+support, then deletes it automatically after a configurable delay. **No
+video is stored durably.**
 
-## ⚠️ Avertissement légal
+## ⚠️ Legal disclaimer
 
-Ce projet est un outil **d'usage strictement personnel**, pensé pour
-consulter *ton propre* compte YouTube (playlists, abonnements, favoris) via
-l'API officielle. Le téléchargement de flux vidéo passe par yt-dlp, qui
-contourne les protections de diffusion de YouTube — c'est un usage qui peut
-enfreindre les [conditions d'utilisation de YouTube](https://www.youtube.com/t/terms)
-selon la juridiction et l'usage qui en est fait.
+This project is a tool meant for **strictly personal use**, designed to
+browse *your own* YouTube account (playlists, subscriptions, favorites)
+through the official API. Downloading the video stream goes through
+yt-dlp, which circumvents YouTube's delivery protections — this may
+violate [YouTube's Terms of Service](https://www.youtube.com/t/terms)
+depending on your jurisdiction and how you use it.
 
-- Aucune vidéo n'est stockée durablement : chaque fichier est supprimé après
-  un délai court (30 min par défaut), aucune mise à disposition publique ou
-  redistribution n'est prévue par l'architecture.
-- Ce dépôt contient uniquement du code : aucun contenu protégé par le droit
-  d'auteur n'est distribué ici.
-- L'auteur et les contributeurs de ce projet ne peuvent être tenus
-  responsables d'un usage qui violerait les conditions d'utilisation de
-  YouTube ou la législation applicable. **À toi de vérifier que ton usage est
-  conforme aux lois de ta juridiction avant de déployer et d'utiliser cet
-  outil.**
-- Ce projet n'est affilié à Google/YouTube d'aucune manière.
+- No video is stored durably: every file is deleted after a short delay
+  (30 minutes by default) — the architecture doesn't provide for any
+  public hosting or redistribution.
+- This repository contains code only: no copyrighted content is
+  distributed here.
+- The author and contributors of this project cannot be held liable for
+  any use that would violate YouTube's Terms of Service or applicable
+  law. **It's up to you to verify that your usage complies with the laws
+  of your jurisdiction before deploying and using this tool.**
+- This project is not affiliated with Google/YouTube in any way.
 
-## Fonctionnalités
+## Features
 
-- Connexion Google OAuth2, **multi-comptes** (plusieurs comptes Google liés à
-  une même session)
-- Playlists : création, renommage, suppression, ajout/retrait de vidéos, tri
-  personnalisable
-- Favoris (vidéos likées), abonnements, tendances, recherche
-- Pages chaîne, noms de chaîne cliquables partout
-- Reprise de lecture automatique, statut vu/non-vu, historique de progression
-- Thème glassmorphism dark, responsive, PWA installable (mobile/desktop),
-  tiré-pour-rafraîchir sur mobile
-- Raccourcis clavier façon YouTube dans le lecteur
+- Google OAuth2 login, **multi-account** (several Google accounts linked to
+  a single session)
+- Playlists: create, rename, delete, add/remove videos, customizable
+  ordering
+- Favorites (liked videos), subscriptions, trending, search
+- Channel pages, clickable channel names everywhere
+- Automatic resume playback, watched/unwatched status, progress history
+- Dark glassmorphism theme, responsive, installable PWA (mobile/desktop),
+  pull-to-refresh on mobile
+- YouTube-style keyboard shortcuts in the player
 
-Voir [`ROADMAP.md`](ROADMAP.md) pour le détail de ce qui est fait, en cours,
-ou volontairement hors scope.
+See [`ROADMAP.md`](ROADMAP.md) for the detail of what's done, in progress,
+or deliberately out of scope.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    subgraph Client["Navigateur / PWA"]
+    subgraph Client["Browser / PWA"]
         FE["Frontend Vue 3 + Vite\n(SPA, service worker)"]
     end
 
-    subgraph Server["Backend FastAPI"]
+    subgraph Server["FastAPI backend"]
         API["Routes /api/*"]
         DL["downloader.py\n(yt-dlp)"]
         Cleanup["cleanup.py\n(APScheduler)"]
     end
 
-    Redis[("Redis\nsessions, cache métadonnées,\nstatut de download")]
-    Cache["Cache disque éphémère\n(fichiers vidéo, TTL)"]
+    Redis[("Redis\nsessions, metadata cache,\ndownload status")]
+    Cache["Ephemeral disk cache\n(video files, TTL)"]
     Google["Google OAuth2 /\nYouTube Data API v3"]
-    YouTube["YouTube\n(flux vidéo)"]
+    YouTube["YouTube\n(video stream)"]
 
     FE -- "fetch, credentials: include" --> API
     API -- "sessions, cache" --> Redis
-    API -- "playlists, favoris,\nrecherche, métadonnées" --> Google
-    API -- "déclenche" --> DL
-    DL -- "télécharge" --> YouTube
-    DL -- "écrit" --> Cache
+    API -- "playlists, favorites,\nsearch, metadata" --> Google
+    API -- "triggers" --> DL
+    DL -- "downloads" --> YouTube
+    DL -- "writes" --> Cache
     Cache -- "FileResponse (Range)" --> API
-    Cleanup -- "purge après TTL" --> Cache
-    Cleanup -- "lit le statut" --> Redis
+    Cleanup -- "purges after TTL" --> Cache
+    Cleanup -- "reads status" --> Redis
 ```
 
-Principe directeur : **le moins de code custom possible**. Chaque
-préoccupation transverse est déléguée à une lib standard plutôt que
-réimplémentée :
+Guiding principle: **as little custom code as possible**. Every
+cross-cutting concern is delegated to a standard library rather than
+reimplemented:
 
-| Besoin | Solution |
+| Need | Solution |
 | --- | --- |
-| Seek vidéo (`Range` headers) | `FileResponse` de Starlette — natif |
-| OAuth2 Google | `google-auth-oauthlib` (lib officielle) |
-| Nettoyage périodique des fichiers | `APScheduler` |
-| Cache métadonnées / sessions | Redis |
+| Video seek (`Range` headers) | Starlette's `FileResponse` — native |
+| Google OAuth2 | `google-auth-oauthlib` (official library) |
+| Periodic file cleanup | `APScheduler` |
+| Metadata / session cache | Redis |
 
-## Comment ça marche
+## How it works
 
-### Authentification (OAuth2 + PKCE)
+### Authentication (OAuth2 + PKCE)
 
 ```mermaid
 sequenceDiagram
-    participant U as Utilisateur (navigateur)
+    participant U as User (browser)
     participant F as Frontend
     participant B as Backend
     participant G as Google OAuth2
     participant R as Redis
 
-    U->>F: Clique "Se connecter"
+    U->>F: Clicks "Sign in"
     F->>B: GET /api/auth/login
-    B->>R: Stocke code_verifier (PKCE), keyé par state
-    B-->>U: Redirect vers l'écran de consentement Google
-    U->>G: Accepte les scopes demandés
-    G-->>U: Redirect vers /api/auth/callback?code=...&state=...
+    B->>R: Stores code_verifier (PKCE), keyed by state
+    B-->>U: Redirect to Google's consent screen
+    U->>G: Accepts the requested scopes
+    G-->>U: Redirect to /api/auth/callback?code=...&state=...
     U->>B: GET /api/auth/callback
-    B->>R: Récupère + supprime code_verifier (getdel)
-    B->>G: Échange code + code_verifier contre un token
+    B->>R: Fetches + deletes code_verifier (getdel)
+    B->>G: Exchanges code + code_verifier for a token
     G-->>B: access_token, refresh_token
-    B->>G: userinfo (profil du compte)
-    B->>R: Sauvegarde credentials + profil (account_id)
-    B->>R: Crée une session (session_id → account_ids)
-    B-->>U: Cookie de session (httponly, secure, samesite=lax)
+    B->>G: userinfo (account profile)
+    B->>R: Saves credentials + profile (account_id)
+    B->>R: Creates a session (session_id → account_ids)
+    B-->>U: Session cookie (httponly, secure, samesite=lax)
 ```
 
-Le cookie de session ne contient qu'un `session_id` opaque — les tokens
-Google (access/refresh) restent en Redis, jamais côté client.
+The session cookie only holds an opaque `session_id` — Google's tokens
+(access/refresh) stay in Redis, never on the client.
 
-### Lecture d'une vidéo
+### Watching a video
 
 ```mermaid
 sequenceDiagram
@@ -127,132 +126,133 @@ sequenceDiagram
     participant B as Backend
     participant Y as yt-dlp
     participant R as Redis
-    participant D as Cache disque
+    participant D as Disk cache
 
     F->>B: POST /api/video/{id}/prepare
-    B-->>F: 202 (tâche lancée en arrière-plan)
-    B->>Y: Télécharge la vidéo (thread séparé)
+    B-->>F: 202 (background task started)
+    B->>Y: Downloads the video (separate thread)
     loop Polling
         F->>B: GET /api/video/{id}/status
-        B->>R: Lit l'avancement
+        B->>R: Reads progress
         B-->>F: downloading (progress %) | ready | error
     end
-    Y->>D: Écrit le fichier .mp4
+    Y->>D: Writes the .mp4 file
     Y->>R: state=ready, path=...
     F->>B: GET /api/video/{id}/stream (Range headers)
-    B-->>F: FileResponse (seek natif)
-    Note over D,R: Un job périodique (cleanup.py) supprime<br/>le fichier après VIDEO_TTL_SECONDS
+    B-->>F: FileResponse (native seek)
+    Note over D,R: A periodic job (cleanup.py) deletes<br/>the file after VIDEO_TTL_SECONDS
 ```
 
 ## Stack
 
-| Couche | Techno | Pourquoi |
+| Layer | Tech | Why |
 | --- | --- | --- |
-| Backend | [FastAPI](https://fastapi.tiangolo.com/) | Import direct de `yt_dlp` comme lib Python (pas de subprocess) |
-| Extraction vidéo | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | Le seul composant qui contourne les protections YouTube |
-| Données YouTube | [YouTube Data API v3](https://developers.google.com/youtube/v3) via `google-api-python-client` | Playlists/favoris/métadonnées — jamais via yt-dlp |
-| Auth | `google-auth-oauthlib` | OAuth2 + PKCE, lib officielle Google |
-| Cache / sessions | [Redis](https://redis.io/) | Métadonnées (TTL 15 min), sessions, statut de download |
-| Nettoyage fichiers | [APScheduler](https://apscheduler.readthedocs.io/) | Job périodique, purge après TTL |
-| Frontend | [Vue 3](https://vuejs.org/) + [Vite](https://vitejs.dev/) | SPA réactive |
-| State | [Pinia](https://pinia.vuejs.org/) | Store partagé (bibliothèque, progression, playlists) |
-| Routing | [vue-router](https://router.vuejs.org/) | Navigation SPA |
+| Backend | [FastAPI](https://fastapi.tiangolo.com/) | Imports `yt_dlp` directly as a Python lib (no subprocess) |
+| Video extraction | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | The only component that circumvents YouTube's protections |
+| YouTube data | [YouTube Data API v3](https://developers.google.com/youtube/v3) via `google-api-python-client` | Playlists/favorites/metadata — never via yt-dlp |
+| Auth | `google-auth-oauthlib` | OAuth2 + PKCE, official Google library |
+| Cache / sessions | [Redis](https://redis.io/) | Metadata (15 min TTL), sessions, download status |
+| File cleanup | [APScheduler](https://apscheduler.readthedocs.io/) | Periodic job, purges after TTL |
+| Frontend | [Vue 3](https://vuejs.org/) + [Vite](https://vitejs.dev/) | Reactive SPA |
+| State | [Pinia](https://pinia.vuejs.org/) | Shared store (library, progress, playlists) |
+| Routing | [vue-router](https://router.vuejs.org/) | SPA navigation |
 | PWA | [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) | Manifest + service worker, installable |
-| Icônes | [lucide](https://lucide.dev/) | Jeu d'icônes de l'UI |
-| Reverse proxy (prod) | [Caddy](https://caddyserver.com/) ou [Traefik](https://traefik.io/) | HTTPS automatique (Let's Encrypt) |
+| Icons | [lucide](https://lucide.dev/) | UI icon set |
+| Reverse proxy (prod) | [Caddy](https://caddyserver.com/) or [Traefik](https://traefik.io/) | Automatic HTTPS (Let's Encrypt) |
 
-## Démarrage rapide
+## Quick start
 
-### Prérequis
+### Prerequisites
 - Python 3.11+
 - Node 18+
 - Redis (`redis-server`)
-- Un projet Google Cloud avec l'API "YouTube Data API v3" activée et des
-  identifiants OAuth 2.0 (type "Web application") — voir le mode opératoire
-  détaillé ci-dessous.
+- A Google Cloud project with the "YouTube Data API v3" enabled and OAuth
+  2.0 credentials (type "Web application") — see the detailed walkthrough
+  below.
 
-### Configurer Google Cloud (une seule fois)
+### Set up Google Cloud (one-time)
 
-L'app a besoin de tes propres identifiants OAuth pour accéder à *ton* compte
-YouTube. Ça se configure entièrement depuis la
-[console Google Cloud](https://console.cloud.google.com/), gratuitement.
+The app needs its own OAuth credentials to access *your* YouTube account.
+This is configured entirely from the
+[Google Cloud console](https://console.cloud.google.com/), free of charge.
 
-1. **Créer un projet** — sélecteur de projet en haut de la console → **Nouveau
-   projet** → nom libre (ex. `ouyouyoutube`).
-2. **Activer l'API YouTube Data v3** — menu **API et services →
-   Bibliothèque** → cherche **YouTube Data API v3** → **Activer**.
-3. **Configurer l'écran de consentement OAuth** — **API et services → Écran
-   de consentement OAuth** :
-   - Type utilisateur : **Externe** (un compte Gmail perso ne peut pas créer
-     d'app "interne").
-   - Renseigne un nom d'app, un email support et un email développeur.
-   - Section **Scopes** : ajoute explicitement les 4 scopes utilisés par
-     l'app (`server/app/auth.py`) :
+1. **Create a project** — project selector at the top of the console →
+   **New project** → any name (e.g. `ouyouyoutube`).
+2. **Enable the YouTube Data API v3** — menu **APIs & Services →
+   Library** → search **YouTube Data API v3** → **Enable**.
+3. **Configure the OAuth consent screen** — **APIs & Services → OAuth
+   consent screen**:
+   - User type: **External** (a personal Gmail account can't create an
+     "internal" app).
+   - Fill in an app name, a support email, and a developer email.
+   - **Scopes** section: explicitly add the 4 scopes used by the app
+     (`server/app/auth.py`):
      - `https://www.googleapis.com/auth/youtube`
      - `openid`
      - `https://www.googleapis.com/auth/userinfo.email`
      - `https://www.googleapis.com/auth/userinfo.profile`
 
-     ⚠️ Un scope non déclaré ici explicitement est silencieusement retiré de
-     la réponse du token par Google, sans erreur visible — voir
-     `ROADMAP.md` (section "Contraintes connues").
-   - Section **Utilisateurs test** : tant que l'app n'est pas publiée/validée
-     par Google, seuls les comptes ajoutés ici peuvent se connecter — ajoute
-     ta propre adresse Gmail.
-4. **Créer les identifiants OAuth 2.0** — **API et services → Identifiants
-   → Créer des identifiants → ID client OAuth** :
-   - Type d'application : **Application Web**.
-   - **URI de redirection autorisés** : doit correspondre *exactement* à
-     `GOOGLE_REDIRECT_URI` dans `server/.env` (voir plus bas). En local avec
-     les valeurs par défaut :
+     ⚠️ A scope not explicitly declared here is silently dropped from the
+     token response by Google, with no visible error — see `ROADMAP.md`
+     (the "Known constraints" section).
+   - **Test users** section: until the app is published/verified by
+     Google, only accounts added here can sign in — add your own Gmail
+     address.
+4. **Create the OAuth 2.0 credentials** — **APIs & Services → Credentials
+   → Create credentials → OAuth client ID**:
+   - Application type: **Web application**.
+   - **Authorized redirect URIs**: must match `GOOGLE_REDIRECT_URI` in
+     `server/.env` *exactly* (see below). Locally with the default
+     values:
      ```
      http://localhost:8000/api/auth/callback
      ```
-   - Valide, puis récupère le **Client ID** et le **Client Secret** affichés.
-5. **Renseigner `server/.env`** (voir la section suivante pour le créer) :
+   - Save, then grab the **Client ID** and **Client Secret** shown.
+5. **Fill in `server/.env`** (see the next section to create it):
    ```
    GOOGLE_CLIENT_ID=xxxxxxxxxx.apps.googleusercontent.com
    GOOGLE_CLIENT_SECRET=xxxxxxxxxx
    GOOGLE_REDIRECT_URI=http://localhost:8000/api/auth/callback
    ```
 
-En déploiement (domaine réel derrière Caddy/Traefik), remplace l'URI de
-redirection par `https://ton-domaine/api/auth/callback` — à la fois dans
-Google Cloud Console **et** dans `GOOGLE_REDIRECT_URI`/`FRONTEND_ORIGIN`
-(voir la section [Déploiement](#déploiement-prod)). Google refuse les
-domaines `.local` (mDNS) : impossible de tester avec `http://xxx.local`, il
-faut `localhost` ou un vrai domaine.
+When deploying (real domain behind Caddy/Traefik), replace the redirect
+URI with `https://your-domain/api/auth/callback` — both in Google Cloud
+Console **and** in `GOOGLE_REDIRECT_URI`/`FRONTEND_ORIGIN` (see the
+[Deployment](#deployment-prod) section). Google rejects `.local` (mDNS)
+domains: you can't test with `http://xxx.local`, you need `localhost` or a
+real domain.
 
-### Backend + Redis en container (recommandé, notamment sous Windows)
+### Backend + Redis in a container (recommended, especially on Windows)
 
-Redis n'a pas de build officiel Windows, et faire tourner le backend en
-container évite d'avoir à gérer un venv Python à la main. `docker-compose.yml`
-à la racine du repo lance Redis + backend, avec hot-reload :
+Redis has no official Windows build, and running the backend in a
+container avoids having to manage a Python venv by hand. The
+`docker-compose.yml` at the repo root starts Redis + backend, with
+hot-reload:
 
 ```powershell
-# Windows : Docker tourne dans une distro WSL (ex. Ubuntu)
-wsl -d Ubuntu -- bash -c "cd /mnt/c/chemin/vers/OuyouyouTube && docker compose --profile dev up --watch"
+# Windows: Docker runs inside a WSL distro (e.g. Ubuntu)
+wsl -d Ubuntu -- bash -c "cd /mnt/c/path/to/OuyouyouTube && docker compose --profile dev up --watch"
 ```
 
 ```bash
-# macOS/Linux avec Docker installé nativement
+# macOS/Linux with Docker installed natively
 docker compose --profile dev up --watch
 ```
 
-Le `--profile dev` est nécessaire : `backend` (dev) et `backend-prod` sont
-deux services distincts profilés séparément, pour que le backend "dev"
-(port 8000 publié, hot-reload) ne tourne jamais en même temps que le profil
-`prod` (qui ne doit exposer que Caddy, voir plus bas).
+`--profile dev` is required: `backend` (dev) and `backend-prod` are two
+separate profiled services, so the "dev" backend (port 8000 published,
+hot-reload) never runs at the same time as the `prod` profile (which
+should only expose Caddy — see below).
 
-`--watch` synchronise `server/app/` en live dans le container (les
-changements de code déclenchent le reload d'uvicorn) et rebuild l'image
-automatiquement si `requirements.txt` change. Le backend est exposé sur
-`http://localhost:8000` comme en local classique.
+`--watch` live-syncs `server/app/` into the container (code changes
+trigger uvicorn's reload) and rebuilds the image automatically if
+`requirements.txt` changes. The backend is exposed on
+`http://localhost:8000` just like a plain local run.
 
-Avant le premier lancement : `cp server/.env.example server/.env` et
-renseigner `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+Before the first run: `cp server/.env.example server/.env` and fill in
+`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
 
-### Frontend (toujours en direct, hors container)
+### Frontend (always run directly, outside the container)
 
 ```bash
 cd front
@@ -260,42 +260,43 @@ npm install
 npm run dev
 ```
 
-Ouvre http://localhost:5173 — le proxy Vite redirige tout ce qui est sous
-`/api/*` vers le backend sur le port 8000 (toutes les routes API vivent sous
-ce préfixe, justement pour ne jamais entrer en collision avec les routes du
-front, ex. `/search` ou `/playlists/manage`).
+Open http://localhost:5173 — the Vite proxy forwards everything under
+`/api/*` to the backend on port 8000 (all API routes live under that
+prefix, precisely so they never collide with frontend routes, e.g.
+`/search` or `/playlists/manage`).
 
-### Backend en direct (sans Docker)
+### Backend directly (without Docker)
 
 ```bash
 cd server
-python3 -m venv .venv && source .venv/bin/activate   # Windows: python -m venv .venv puis .\.venv\Scripts\python.exe
+python3 -m venv .venv && source .venv/bin/activate   # Windows: python -m venv .venv then .\.venv\Scripts\python.exe
 pip install -r requirements.txt
-cp .env.example .env   # renseigner GOOGLE_CLIENT_ID / SECRET
-redis-server &          # ou le container Redis seul si pas de build natif (Windows)
+cp .env.example .env   # fill in GOOGLE_CLIENT_ID / SECRET
+redis-server &          # or just the Redis container if there's no native build (Windows)
 uvicorn app.main:app --reload --port 8000
 ```
 
-**Piège IPv4/IPv6 (Windows)** : sur certaines configs, `localhost` se résout
-en priorité vers `::1` (IPv6). Si le backend n'écoute que sur `127.0.0.1`
-(IPv4), le proxy Vite renvoie `502 Bad Gateway`. `front/vite.config.js`
-pointe donc explicitement vers `http://127.0.0.1:8000` (pas `localhost`).
+**IPv4/IPv6 pitfall (Windows)**: on some setups, `localhost` resolves to
+`::1` (IPv6) first. If the backend only listens on `127.0.0.1` (IPv4), the
+Vite proxy returns `502 Bad Gateway`. `front/vite.config.js` therefore
+points explicitly to `http://127.0.0.1:8000` (not `localhost`).
 
-**OAuth en HTTP local** : `oauthlib` refuse par défaut l'échange de token
-hors HTTPS. En dev, avec un `redirect_uri` en `http://localhost`, il faut
-positionner `OAUTHLIB_INSECURE_TRANSPORT=1` dans l'environnement du backend
-(déjà fait dans `docker-compose.yml` ; à définir toi-même si tu lances
-uvicorn sans Docker). **Ne jamais faire ça en prod.**
+**OAuth over local HTTP**: `oauthlib` refuses the token exchange over
+non-HTTPS by default. In dev, with a `redirect_uri` on `http://localhost`,
+you need to set `OAUTHLIB_INSECURE_TRANSPORT=1` in the backend's
+environment (already done in `docker-compose.yml`; set it yourself if you
+run uvicorn without Docker). **Never do this in production.**
 
-**Scope OAuth élargi après coup** : `flow.authorization_url(..., include_granted_scopes="true")`
-fait remonter, en plus des scopes demandés dans la requête en cours, tous
-ceux déjà accordés à l'app par le passé (auth incrémentale Google — utile
-pour ne pas re-demander le consentement à chaque élargissement de scope).
-`oauthlib` traite par défaut tout écart avec ce qui a été demandé comme une
-erreur, y compris un scope *en plus*. Nécessite `OAUTHLIB_RELAX_TOKEN_SCOPE=1`
-dans l'environnement du backend (déjà fait dans `docker-compose.yml` et les
-quadlets Podman) — contrairement à `OAUTHLIB_INSECURE_TRANSPORT`, celui-ci
-est nécessaire aussi en prod, pas juste en dev.
+**Scope widened after the fact**: `flow.authorization_url(..., include_granted_scopes="true")`
+returns, in addition to the scopes requested in the current request, every
+scope already granted to the app in the past (Google's incremental auth —
+useful to avoid re-prompting consent every time a scope is added).
+`oauthlib` treats any mismatch with what was requested as an error by
+default, including an *extra* scope. Requires
+`OAUTHLIB_RELAX_TOKEN_SCOPE=1` in the backend's environment (already done
+in `docker-compose.yml` and the Podman quadlets) — unlike
+`OAUTHLIB_INSECURE_TRANSPORT`, this one is also needed in production, not
+just dev.
 
 ## Tests
 
@@ -310,59 +311,58 @@ cd front
 npm run test
 ```
 
-La CI (`.github/workflows/ci.yml`) lance les deux suites plus `npm run
-build` sur chaque push/PR. Voir [`ROADMAP.md`](ROADMAP.md) pour le détail de
-ce qui est couvert.
+CI (`.github/workflows/ci.yml`) runs both suites plus `npm run build` on
+every push/PR. See [`ROADMAP.md`](ROADMAP.md) for what's covered.
 
-## Déploiement (prod)
+## Deployment (prod)
 
-Le service `frontend` de `docker-compose.yml` (profil `prod`) build la SPA et
-la sert via **Caddy** (`front/Dockerfile`, `front/Caddyfile`), qui fait aussi
-office de reverse proxy vers le backend pour tout ce qui est sous `/api/*`.
-Un seul point d'entrée, HTTPS automatique (Let's Encrypt) si `SITE_ADDRESS`
-est un vrai nom de domaine — `backend-prod` (aussi profil `prod`) ne publie
-aucun port sur l'hôte, seul `frontend` est joignable depuis l'extérieur,
-comme dans les quadlets Podman.
+The `frontend` service in `docker-compose.yml` (`prod` profile) builds the
+SPA and serves it via **Caddy** (`front/Dockerfile`, `front/Caddyfile`),
+which also acts as a reverse proxy to the backend for everything under
+`/api/*`. A single entry point, automatic HTTPS (Let's Encrypt) if
+`SITE_ADDRESS` is a real domain name — `backend-prod` (also `prod`
+profile) doesn't publish any port on the host, only `frontend` is
+reachable from the outside, same as in the Podman quadlets.
 
 ```bash
-cp .env.example .env   # définir SITE_ADDRESS
+cp .env.example .env   # set SITE_ADDRESS
 docker compose --profile prod up -d --build
 ```
 
-Caddy écoute sur 8080 (HTTP) / 8443 (HTTPS), publiés tels quels sur l'hôte.
+Caddy listens on 8080 (HTTP) / 8443 (HTTPS), published as-is on the host.
 
-- `SITE_ADDRESS=:8080` (défaut) → HTTP simple, pratique pour tester en local
-  sans domaine (pas de TLS).
-- `SITE_ADDRESS=ouyouyoutube.mondomaine.fr` → Caddy obtient un certificat
-  Let's Encrypt automatiquement sur 8443 (DNS doit pointer vers l'hôte ;
-  redirige les ports externes 80/443 vers 8080/8443 sur cette machine si
-  besoin, ex. sur la box/le routeur).
+- `SITE_ADDRESS=:8080` (default) → plain HTTP, handy for testing locally
+  without a domain (no TLS).
+- `SITE_ADDRESS=ouyouyoutube.yourdomain.com` → Caddy obtains a Let's
+  Encrypt certificate automatically on 8443 (DNS must point to the host;
+  redirect the external ports 80/443 to 8080/8443 on this machine if
+  needed, e.g. on your router/box).
 
-Dans tous les cas, `server/.env` (`GOOGLE_REDIRECT_URI`, `FRONTEND_ORIGIN`)
-doit être cohérent avec `SITE_ADDRESS` — et le `redirect_uri` déclaré dans
-Google Cloud Console doit correspondre exactement. Google refuse les
-domaines `.local` (mDNS) : impossible de tester le login OAuth via
-`http://xxx.local`, il faut un vrai domaine (ou `localhost`).
+In every case, `server/.env` (`GOOGLE_REDIRECT_URI`, `FRONTEND_ORIGIN`)
+must be consistent with `SITE_ADDRESS` — and the `redirect_uri` declared
+in Google Cloud Console must match exactly. Google rejects `.local` (mDNS)
+domains: you can't test the OAuth login via `http://xxx.local`, you need a
+real domain (or `localhost`).
 
-### Alternative : Podman Quadlet (derrière Traefik + pod_utils existants)
+### Alternative: Podman Quadlet (behind an existing Traefik + pod_utils)
 
-`services/*.container` fournit un équivalent du `docker-compose.yml` (profil
-prod) sous forme d'unités systemd Quadlet, harmonisé avec les autres services
-du même hôte (réseau `server_gateway`, pod `pod_utils`, style des labels
-Traefik) : aucun port n'est publié par ces containers, ils rejoignent
-`pod_utils` et sont rattachés à `server_gateway` comme les autres apps. Le
-frontend est protégé par le middleware `authentik` en plus du login Google ;
-`backend` et `redis` restent internes (pas de label Traefik).
+`services/*.container` provides an equivalent of `docker-compose.yml`
+(`prod` profile) as systemd Quadlet units, aligned with the other services
+on the same host (`server_gateway` network, `pod_utils` pod, same Traefik
+label style): none of these containers publish any port, they join
+`pod_utils` and attach to `server_gateway` like the other apps. The
+frontend is protected by the `authentik` middleware on top of the Google
+login; `backend` and `redis` stay internal (no Traefik label).
 
-⚠️ `pod_utils` partage le namespace réseau entre tous ses membres : vérifie
-qu'aucun autre service du pod n'utilise déjà les ports 6379 (redis), 8000
-(backend), 8080/8443 (frontend) avant d'activer ces units.
+⚠️ `pod_utils` shares the network namespace across all its members: check
+that no other service in the pod already uses ports 6379 (redis), 8000
+(backend), 8080/8443 (frontend) before enabling these units.
 
-À adapter si besoin :
-- `EnvironmentFile=%h/ouyouyoutube/server.env` (backend) → copier `server/.env`
-  à cet endroit sur l'hôte.
-- Le domaine (`ouyouyoutube.d-yann.fr`) dans `ouyouyoutube_frontend.container`
-  si tu changes de nom.
+Adjust as needed:
+- `EnvironmentFile=%h/ouyouyoutube/server.env` (backend) → copy
+  `server/.env` to that location on the host.
+- The domain (`ouyouyoutube.d-yann.fr`) in
+  `ouyouyoutube_frontend.container` if you use a different one.
 
 ```bash
 podman build -t ouyouyoutube_backend:latest ./server
@@ -376,56 +376,56 @@ systemctl --user enable --now ouyouyoutube_redis.service ouyouyoutube_backend.se
 
 ## Notes
 
-- yt-dlp est importé comme lib Python, pas en subprocess — plus simple à
-  maintenir. Il reste isolé dans `server/app/downloader.py`, jamais appelé
-  ailleurs dans le code.
-- Le seek fonctionne nativement grâce à Starlette `FileResponse`, aucun code
-  Range custom.
-- Si YouTube throttle/bloque : exporter un `cookies.txt` (extension
-  navigateur type "Get cookies.txt") et renseigner `YTDLP_COOKIES_FILE` dans
+- yt-dlp is imported as a Python lib, not run as a subprocess — simpler to
+  maintain. It stays isolated in `server/app/downloader.py`, never called
+  anywhere else in the code.
+- Seek works natively thanks to Starlette's `FileResponse` — no custom
+  Range handling code.
+- If YouTube throttles/blocks requests: export a `cookies.txt` (browser
+  extension such as "Get cookies.txt") and set `YTDLP_COOKIES_FILE` in
   `.env`.
 
-## Contribuer
+## Contributing
 
-Les contributions sont bienvenues — voir [`CONTRIBUTING.md`](CONTRIBUTING.md)
-pour le setup de dev, les conventions de branches/commits, et le processus
-de PR. Ce projet suit le [Contributor Covenant](CODE_OF_CONDUCT.md).
+Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md) for
+the dev setup, branch/commit conventions, and PR process. This project
+follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
 
-Pour signaler une vulnérabilité de sécurité, voir [`SECURITY.md`](SECURITY.md)
-plutôt que d'ouvrir une issue publique.
+To report a security vulnerability, see [`SECURITY.md`](SECURITY.md)
+instead of opening a public issue.
 
-## Crédits
+## Credits
 
-Ce projet s'appuie entièrement sur des bibliothèques open source. Un immense
-merci à leurs auteurs et mainteneurs :
+This project relies entirely on open source libraries. A huge thanks to
+their authors and maintainers:
 
 **Backend**
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense) — extraction/téléchargement du flux vidéo
-- [FastAPI](https://github.com/fastapi/fastapi) (MIT) — framework backend
-- [Uvicorn](https://github.com/encode/uvicorn) (BSD-3-Clause) — serveur ASGI
-- [google-api-python-client](https://github.com/googleapis/google-api-python-client) (Apache-2.0) — client YouTube Data API v3
-- [google-auth-oauthlib](https://github.com/googleapis/google-auth-library-python-oauthlib) (Apache-2.0) — flow OAuth2 + PKCE
-- [redis-py](https://github.com/redis/redis-py) (MIT) — client Redis async
-- [APScheduler](https://github.com/agronholm/apscheduler) (MIT) — job périodique de nettoyage
-- [Pydantic](https://github.com/pydantic/pydantic) / [pydantic-settings](https://github.com/pydantic/pydantic-settings) (MIT) — validation et configuration
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense) — video stream extraction/download
+- [FastAPI](https://github.com/fastapi/fastapi) (MIT) — backend framework
+- [Uvicorn](https://github.com/encode/uvicorn) (BSD-3-Clause) — ASGI server
+- [google-api-python-client](https://github.com/googleapis/google-api-python-client) (Apache-2.0) — YouTube Data API v3 client
+- [google-auth-oauthlib](https://github.com/googleapis/google-auth-library-python-oauthlib) (Apache-2.0) — OAuth2 + PKCE flow
+- [redis-py](https://github.com/redis/redis-py) (MIT) — async Redis client
+- [APScheduler](https://github.com/agronholm/apscheduler) (MIT) — periodic cleanup job
+- [Pydantic](https://github.com/pydantic/pydantic) / [pydantic-settings](https://github.com/pydantic/pydantic-settings) (MIT) — validation and configuration
 
 **Frontend**
-- [Vue.js](https://github.com/vuejs/core) (MIT) — framework UI
+- [Vue.js](https://github.com/vuejs/core) (MIT) — UI framework
 - [Vite](https://github.com/vitejs/vite) (MIT) — build tool
 - [Pinia](https://github.com/vuejs/pinia) (MIT) — state management
-- [vue-router](https://github.com/vuejs/router) (MIT) — routing SPA
+- [vue-router](https://github.com/vuejs/router) (MIT) — SPA routing
 - [vite-plugin-pwa](https://github.com/vite-pwa/vite-plugin-pwa) (MIT) — manifest + service worker
-- [Lucide](https://github.com/lucide-icons/lucide) (ISC) — icônes
+- [Lucide](https://github.com/lucide-icons/lucide) (ISC) — icons
 - [Vitest](https://github.com/vitest-dev/vitest) (MIT) — tests
 
-**Infrastructure (déploiement)**
-- [Redis](https://github.com/redis/redis) (RSALv2/SSPLv1 dual license selon version — voir le dépôt officiel)
-- [Caddy](https://github.com/caddyserver/caddy) (Apache-2.0) — reverse proxy, HTTPS automatique
-- [Traefik](https://github.com/traefik/traefik) (MIT) — alternative reverse proxy (déploiement Podman Quadlet)
+**Infrastructure (deployment)**
+- [Redis](https://github.com/redis/redis) (RSALv2/SSPLv1 dual license depending on version — see the official repo)
+- [Caddy](https://github.com/caddyserver/caddy) (Apache-2.0) — reverse proxy, automatic HTTPS
+- [Traefik](https://github.com/traefik/traefik) (MIT) — alternative reverse proxy (Podman Quadlet deployment)
 
-Ce projet lui-même n'est affilié à, ni endossé par, aucune des organisations
-ci-dessus, ni par Google/YouTube.
+This project itself is not affiliated with, or endorsed by, any of the
+organizations above, nor by Google/YouTube.
 
-## Licence
+## License
 
-[MIT](LICENSE) — voir le fichier `LICENSE` pour le texte complet.
+[MIT](LICENSE) — see the `LICENSE` file for the full text.

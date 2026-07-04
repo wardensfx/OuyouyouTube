@@ -1,119 +1,110 @@
-# OuyouyouTube — contexte projet
+# OuyouyouTube — project context
 
-Client YouTube personnel : PWA qui reproduit le fonctionnement de l'app
-originale (playlists, favoris, écran d'accueil) mais le visionnage est
-streamé depuis un backend perso qui télécharge la vidéo via yt-dlp, la sert,
-puis la supprime après un TTL. Aucun stockage durable de vidéo.
+Personal YouTube client: a PWA that reproduces the official app's behavior
+(playlists, favorites, subscriptions, search, home feed) but playback is
+streamed from a personal backend that downloads the video via yt-dlp,
+serves it, then deletes it after a TTL. No durable video storage.
 
-Usage prévu strictement personnel (une instance déployée = un usage perso).
-Le code source du dépôt est public (licence MIT, voir `README.md`), mais
-ça ne change pas la vocation de l'outil : chacun héberge sa propre instance
-pour son propre compte YouTube, ce n'est pas un service public partagé. Le
-risque légal identifié (contournement des protections YouTube) est celui de
-yt-dlp lui-même, accepté et assumé par l'utilisateur de chaque instance —
-voir l'avertissement légal dans `README.md`.
+Intended for strictly personal use (one deployed instance = one personal
+use). The repo's source code is public (MIT license, see `README.md`),
+but that doesn't change the tool's purpose: everyone hosts their own
+instance for their own YouTube account, this isn't a shared public
+service. The identified legal risk (circumventing YouTube's protections)
+is yt-dlp's own risk, accepted and assumed by each instance's user — see
+the legal disclaimer in `README.md`.
 
-## Stack (décisions actées, ne pas dévier sans discussion)
+## Stack (settled decisions, don't deviate without discussion)
 
-- **Backend** : FastAPI (Python), choisi pour importer yt-dlp comme lib
-  directement (`import yt_dlp`), pas de subprocess/parsing sauf pour ffmpeg
-  si besoin de remux.
-- **Streaming vidéo** : `FileResponse` de Starlette. Le support des `Range`
-  headers (seek) est natif — ne jamais réimplémenter ça à la main.
-- **Auth** : OAuth2 Google via `google-auth-oauthlib` (lib officielle).
-  Session côté serveur : le cookie ne contient qu'un `session_id` opaque,
-  les tokens Google restent en Redis (`app/session.py`). Ne jamais mettre
-  de token dans un cookie côté client.
-- **Données YouTube (playlists/favoris/métadonnées)** : YouTube Data API v3
-  exclusivement. yt-dlp ne sert QUE à récupérer le flux vidéo, jamais les
-  métadonnées sociales.
-- **Cache métadonnées** : Redis, TTL 15 min (quota API limité).
-- **Nettoyage fichiers vidéo** : APScheduler, job périodique dans
-  `app/cleanup.py`, TTL configurable (`VIDEO_TTL_SECONDS`, 30 min par défaut).
-- **Frontend** : Vue 3 + Vite + `vite-plugin-pwa`, Pinia pour le state,
-  vue-router pour la navigation. Proxy dev vers `localhost:8000`.
-- Principe général : **le moins de code custom possible**, on délègue aux
-  libs standard à chaque fois que c'est possible (Range requests, OAuth,
-  cache, scheduling).
+- **Backend**: FastAPI (Python), chosen so `yt_dlp` can be imported
+  directly as a lib (`import yt_dlp`), no subprocess/parsing except for
+  ffmpeg if remuxing is needed.
+- **Video streaming**: Starlette's `FileResponse`. `Range` header support
+  (seek) is native — never hand-roll this.
+- **Auth**: Google OAuth2 via `google-auth-oauthlib` (official lib), with
+  PKCE. Server-side session: the cookie only holds an opaque `session_id`,
+  Google tokens stay in Redis (`app/session.py`). Never put a token in a
+  client-side cookie. Supports multiple linked Google accounts per
+  session (account switcher).
+- **YouTube data (playlists/favorites/metadata)**: YouTube Data API v3
+  exclusively. yt-dlp is used ONLY to fetch the video stream, never social
+  metadata.
+- **Metadata cache**: Redis, 15 min TTL (limited API quota).
+- **Video file cleanup**: APScheduler, periodic job in `app/cleanup.py`,
+  configurable TTL (`VIDEO_TTL_SECONDS`, 30 min by default).
+- **Frontend**: Vue 3 + Vite + `vite-plugin-pwa`, Pinia for state,
+  vue-router for navigation. Dev proxy to `localhost:8000`.
+- General principle: **as little custom code as possible** — delegate to
+  standard libs whenever possible (Range requests, OAuth, cache,
+  scheduling).
 
 ## Structure
 
 ```
 server/app/
-  config.py      settings via pydantic-settings, lit .env
-  session.py     session serveur (Redis), cookie = session_id only
-  auth.py        routes OAuth (/auth/login, /callback, /logout)
-  youtube.py     wrap YouTube Data API (playlists, favoris, items)
-  cache.py       wrapper Redis async get/set JSON
-  downloader.py  yt-dlp lib, état en Redis (downloading/ready/error)
-  video.py       routes /video/{id}/prepare, /status, /stream
-  playlists.py   routes /playlists, /playlists/{id}/items, /favorites
-  cleanup.py     APScheduler, purge fichiers > TTL
-  main.py        FastAPI app, CORS, lifespan (démarre le scheduler)
+  config.py      settings via pydantic-settings, reads .env
+  session.py     server-side session (Redis), cookie = session_id only,
+                 supports multiple linked accounts per session
+  auth.py        OAuth routes (/api/auth/login, /callback, /logout,
+                 /accounts, account switcher, avatar proxy)
+  youtube.py     wraps the YouTube Data API (playlists, favorites, items,
+                 search, trending, subscriptions feed, channels)
+  cache.py       async Redis get/set JSON wrapper
+  downloader.py  yt-dlp lib, state in Redis (downloading/ready/error)
+  video.py       routes /api/video/{id}/prepare, /status, /stream, /info,
+                 /progress, /watched
+  playlists.py   routes /api/playlists, /api/playlists/{id}/items,
+                 /api/favorites
+  search.py      route /api/search
+  home.py        routes /api/home/trending, /api/home/subscriptions
+  progress.py    watch progress / watched status, per account/video
+  cleanup.py     APScheduler, purges files > TTL
+  main.py        FastAPI app, CORS, lifespan (starts the scheduler); all
+                 routers mounted under /api to avoid colliding with
+                 frontend routes
 
 front/src/
-  api/client.js       fetch wrapper, credentials: 'include' obligatoire
-  stores/library.js   Pinia store (playlists + favoris)
-  router/index.js     routes: /, /playlist/:id, /watch/:videoId
+  api/client.js       fetch wrapper, credentials: 'include' required, all
+                       calls under /api
+  stores/             Pinia stores: library.js (playlists + favorites),
+                       playlistOrder.js, progress.js, toast.js
+  router/index.js      routes: /, /playlist/:id, /playlists/manage,
+                       /favorites, /subscriptions, /trending,
+                       /watch/:videoId, /search
   views/
-    Home.vue           grille playlists + favoris
-    PlaylistDetail.vue  items d'une playlist
-    Player.vue          prepare → poll status → <video> une fois ready
+    Home.vue           customizable home feed (subscriptions, trending,
+                       playlists, favorites sections)
+    PlaylistDetail.vue  items of a playlist
+    ManagePlaylists.vue reorder/rename/delete playlists
+    Player.vue          prepare → poll status → <video> once ready,
+                       YouTube-style keyboard shortcuts
+    Search.vue, Trending.vue, Subscriptions.vue, Liked.vue
   components/
-    VideoCard.vue, PlaylistCard.vue
+    VideoCard.vue, PlaylistCard.vue, AccountSwitcher.vue, Sidebar.vue,
+    BottomNav.vue, AddToPlaylistModal.vue, ToastContainer.vue,
+    ScrollToTop.vue
 ```
 
-## État actuel
+## Current state
 
-Squelette fonctionnel bout en bout, **non testé avec de vrais identifiants
-Google** (pas de compte OAuth configuré côté sandbox où le code a été écrit).
+The project has grown well past the initial skeleton — see `ROADMAP.md`
+for the full, up-to-date list of what's implemented (most of the Must/
+Should/Could items are done), known constraints, and past fixes. Don't
+duplicate that tracking here; treat `ROADMAP.md` as the source of truth
+for feature status.
 
-Vérifié :
-- Backend s'importe sans erreur, 10 routes montées et confirmées via
-  OpenAPI schema (`/auth/login`, `/auth/callback`, `/auth/logout`,
-  `/playlists`, `/playlists/{id}/items`, `/favorites`,
-  `/video/{id}/prepare`, `/video/{id}/status`, `/video/{id}/stream`,
-  `/health`).
-- Frontend : `npm run build` passe, PWA générée (manifest + service worker).
+Automated tests exist (`server/tests/` with pytest, `front/src/utils/*.test.js`
+with vitest) and run in CI (`.github/workflows/ci.yml`) on every push/PR.
 
-Pas vérifié / pas fait :
-- Flow OAuth complet de bout en bout (jamais lancé avec de vrais identifiants).
-- Téléchargement yt-dlp réel jamais exécuté (pas testé avec une vraie vidéo).
-- Aucun test automatisé (unit/e2e) écrit.
-- Icônes PWA (`front/public/icons/icon-192.png`, `icon-512.png`) : référencées
-  dans `vite.config.js` mais **les fichiers n'existent pas encore**, il faut
-  les générer/fournir.
-- Pas de gestion d'erreur fine côté yt-dlp (vidéo privée, région bloquée,
-  age-restricted, etc.) — actuellement juste catché en `STATUS_ERROR` générique.
-- Pas de gestion du refresh token expiré / révoqué côté `session.py`
-  (`Credentials` reconstruit sans vérifier l'expiration avant usage).
-- Pas de reverse proxy / déploiement (Caddy mentionné en discussion mais
-  rien de configuré).
-- `YTDLP_COOKIES_FILE` prévu dans la config mais pas de doc sur comment
-  l'exporter proprement ni de fallback si absent.
+## Constraints to respect going forward
 
-## Prochaines étapes (par ordre de priorité suggéré)
-
-1. Configurer un projet Google Cloud + identifiants OAuth, remplir `.env`,
-   tester le flow `/auth/login` → `/auth/callback` de bout en bout.
-2. Lancer Redis, tester `/playlists` et `/favorites` avec un vrai compte.
-3. Tester `/video/{id}/prepare` avec une vraie vidéo YouTube, vérifier que
-   le fichier apparaît dans `CACHE_DIR`, que `/stream` sert bien avec Range
-   (tester le seek dans le `<video>` du front).
-4. Générer les icônes PWA manquantes.
-5. Améliorer la gestion d'erreurs downloader (messages différenciés selon
-   le type d'échec yt-dlp).
-6. Tester l'installation PWA sur mobile réel (Add to Home Screen), vérifier
-   le comportement du service worker (surtout `navigateFallbackDenylist`
-   pour ne jamais cacher les routes `/video/*`).
-
-## Contraintes à respecter en continuant le travail
-
-- Garder l'archi "peu de custom" : avant d'écrire du code pour un problème
-  (range requests, retry, cache, queue...), vérifier si une lib standard
-  le fait déjà.
-- Ne jamais stocker de token OAuth côté client (cookie, localStorage, etc.).
-- Les vidéos ne doivent jamais persister au-delà du TTL — toute nouvelle
-  fonctionnalité touchant au stockage doit respecter ce principe.
-- yt-dlp reste isolé dans `downloader.py` — pas d'appel yt-dlp ailleurs
-  dans le code.
+- Keep the "as little custom as possible" architecture: before writing
+  code for a problem (range requests, retry, cache, queue...), check
+  whether a standard lib already does it.
+- Never store an OAuth token client-side (cookie, localStorage, etc.).
+- Videos must never persist beyond the TTL — any new feature touching
+  storage must respect this.
+- yt-dlp stays isolated in `downloader.py` — no yt-dlp calls anywhere
+  else in the code.
+- `video_id` must stay validated (fixed YouTube ID format) wherever it's
+  accepted, since it flows into a filesystem path and a URL passed to
+  yt-dlp.

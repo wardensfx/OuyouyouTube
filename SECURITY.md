@@ -1,53 +1,52 @@
 # Security Policy
 
-## Signaler une vulnérabilité
+## Reporting a vulnerability
 
-Si tu découvres une faille de sécurité dans ce projet (par exemple :
-contournement d'authentification, fuite de token OAuth, traversée de
-répertoire, injection), merci de **ne pas** ouvrir une issue publique.
+If you find a security issue in this project (for example: authentication
+bypass, OAuth token leak, directory traversal, injection), please **do
+not** open a public issue.
 
-À la place :
+Instead:
 
-- Ouvre un [security advisory GitHub](https://github.com/wardensfx/OuyouyouTube/security/advisories/new)
-  (privé par défaut), ou
-- Contacte le mainteneur directement via son profil GitHub.
+- Open a [GitHub security advisory](https://github.com/wardensfx/OuyouyouTube/security/advisories/new)
+  (private by default), or
+- Contact the maintainer directly through their GitHub profile.
 
-Merci d'inclure autant de détails que possible : étapes de reproduction,
-impact potentiel, et une suggestion de correctif si tu en as une.
+Please include as much detail as possible: reproduction steps, potential
+impact, and a suggested fix if you have one.
 
-## Ce qui est dans le périmètre
+## What's in scope
 
-- Le backend FastAPI (`server/app/`) : auth OAuth2, gestion de session,
-  routes API, téléchargement/streaming vidéo.
-- Le frontend Vue (`front/src/`) : gestion des credentials côté client,
-  appels API.
+- The FastAPI backend (`server/app/`): OAuth2 auth, session handling, API
+  routes, video download/streaming.
+- The Vue frontend (`front/src/`): client-side credential handling, API
+  calls.
 
-## Ce qui est explicitement hors périmètre
+## What's explicitly out of scope
 
-- Les failles de sécurité de yt-dlp lui-même, de la YouTube Data API, ou des
-  dépendances tierces — remonte-les directement auprès de leurs mainteneurs
-  respectifs (voir les liens dans le README).
-- Le comportement d'une instance auto-hébergée mal configurée (identifiants
-  OAuth exposés, `.env` commité, reverse proxy mal configuré) : voir le
-  README pour les bonnes pratiques de déploiement.
+- Security issues in yt-dlp itself, the YouTube Data API, or third-party
+  dependencies — report those directly to their respective maintainers
+  (see the links in the README).
+- The behavior of a misconfigured self-hosted instance (exposed OAuth
+  credentials, a committed `.env`, a misconfigured reverse proxy): see the
+  README for deployment best practices.
 
-## Bonnes pratiques déjà en place
+## Good practices already in place
 
-Pour information, avant de signaler quelque chose, voici ce qui est déjà
-vérifié/en place (voir aussi `ROADMAP.md`, section "Sécurité — revue et
-correctifs") :
+For reference, before reporting something, here's what's already
+verified/in place (see also the security-related notes in `ROADMAP.md`):
 
-- Cookie de session `httponly`, `secure`, `samesite=lax` — le cookie ne
-  contient qu'un `session_id` opaque, jamais un token.
-- Tokens OAuth (access/refresh) stockés uniquement côté serveur (Redis),
-  jamais transmis au client.
-- Flow OAuth2 avec PKCE, `state` invalidé après usage.
-- CORS restreint à l'origine du frontend (pas de wildcard).
-- `video_id` validé (format fixe d'un ID YouTube) partout où il est accepté,
-  pour empêcher toute traversée de répertoire via les routes vidéo.
+- Session cookie `httponly`, `secure`, `samesite=lax` — the cookie only
+  holds an opaque `session_id`, never a token.
+- OAuth tokens (access/refresh) stored server-side only (Redis), never
+  sent to the client.
+- OAuth2 flow with PKCE, `state` invalidated after use.
+- CORS restricted to the frontend's origin (no wildcard).
+- `video_id` validated (fixed YouTube ID format) everywhere it's accepted,
+  to prevent directory traversal through the video routes.
 
-## Limites connues (pas des vulnérabilités, mais bon à savoir)
+## Known limitations (not vulnerabilities, but good to know)
 
-- Pas de rate-limiting sur le déclenchement de téléchargement
-  (`POST /video/{id}/prepare`) au-delà du garde-fou "un download à la fois
-  par vidéo". Acceptable pour un usage personnel mono-utilisateur.
+- No rate-limiting on triggering a download (`POST /video/{id}/prepare`)
+  beyond the "one download at a time per video" guard. Acceptable for a
+  personal, single-user deployment.
