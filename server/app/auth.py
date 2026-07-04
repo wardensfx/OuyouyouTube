@@ -1,7 +1,10 @@
 """
 OAuth2 Google — lib officielle google-auth-oauthlib, zéro custom crypto.
 """
-from fastapi import APIRouter, HTTPException, Request
+import base64
+
+import requests
+from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
@@ -19,6 +22,8 @@ from app.session import (
     set_session_cookie,
     unlink_account,
 )
+
+AVATAR_TTL = 60 * 60 * 2  # 2h — évite de re-taper le CDN Google (rate-limite/429)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -123,8 +128,40 @@ async def unlink(account_id: str, request: Request):
     return {"ok": True}
 
 
+@router.get("/accounts/{account_id}/avatar")
+async def avatar(account_id: str, request: Request):
+    """Proxy + cache la photo de profil Google (sinon le CDN nous 429 à force
+    de la re-demander à chaque reload)."""
+    session_id = session_id_from_request(request)
+    accounts_list = await list_accounts(session_id)
+    account = next((a for a in accounts_list if a.id == account_id), None)
+    if account is None:
+        raise HTTPException(status_code=404, detail="Compte introuvable.")
+
+    cache_key = f"avatar:{account_id}"
+    cached = await get_redis().get(cache_key)
+    if cached is None:
+        if not account.picture:
+            raise HTTPException(status_code=404, detail="Pas de photo de profil.")
+        upstream = requests.get(account.picture, timeout=5)
+        upstream.raise_for_status()
+        content_type = upstream.headers.get("content-type", "image/jpeg")
+        cached = f"{content_type}|{base64.b64encode(upstream.content).decode()}"
+        await get_redis().set(cache_key, cached, ex=AVATAR_TTL)
+
+    content_type, encoded = cached.split("|", 1)
+    return Response(
+        content=base64.b64decode(encoded),
+        media_type=content_type,
+        headers={"Cache-Control": f"public, max-age={AVATAR_TTL}"},
+    )
+
+
 @router.post("/logout")
-async def logout(request: Request):
-    response = RedirectResponse(settings.frontend_origin)
+async def logout(request: Request, response: Response):
+    """Pas de RedirectResponse ici : appelé via fetch() depuis le front, qui
+    gère lui-même la navigation. Un redirect 307 sur un POST ferait suivre au
+    navigateur un second POST vers la cible (méthode préservée), que Caddy
+    rejette en 405 côté fichiers statiques."""
     response.delete_cookie(settings.session_cookie_name)
-    return response
+    return {"ok": True}
