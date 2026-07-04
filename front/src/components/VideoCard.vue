@@ -76,12 +76,19 @@ async function toggleWatched() {
         </div>
       </div>
       <p class="card__title">{{ video.title }}</p>
-      <p v-if="video.channel || publishedLabel" class="card__meta">
-        <span v-if="video.channel">{{ video.channel }}</span>
-        <span v-if="video.channel && publishedLabel"> · </span>
-        <span v-if="publishedLabel">{{ publishedLabel }}</span>
-      </p>
     </RouterLink>
+    <p v-if="video.channel || publishedLabel" class="card__meta">
+      <RouterLink
+        v-if="video.channel && video.channel_id"
+        :to="{ name: 'channel', params: { id: video.channel_id } }"
+        class="card__channel-link"
+      >
+        {{ video.channel }}
+      </RouterLink>
+      <span v-else-if="video.channel">{{ video.channel }}</span>
+      <span v-if="video.channel && publishedLabel"> · </span>
+      <span v-if="publishedLabel">{{ publishedLabel }}</span>
+    </p>
 
     <div class="card__actions">
       <button
@@ -197,6 +204,13 @@ async function toggleWatched() {
   font-size: 0.75rem;
   opacity: 0.6;
   margin: 0.1rem 0 0;
+}
+.card__channel-link {
+  color: inherit;
+  text-decoration: none;
+}
+.card__channel-link:hover {
+  text-decoration: underline;
 }
 .card__actions {
   display: flex;

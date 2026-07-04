@@ -5,8 +5,11 @@ import { api } from '../api/client'
 import { useProgressStore } from '../stores/progress'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
+import SkeletonCard from '../components/SkeletonCard.vue'
+import EmptyState from '../components/EmptyState.vue'
 
 defineOptions({ name: 'Subscriptions' })
+const SKELETON_COUNT = 6
 
 const progressStore = useProgressStore()
 const videos = ref([])
@@ -35,9 +38,11 @@ onMounted(load)
     <RouterLink to="/" class="back"><ArrowLeft :size="16" /> Retour</RouterLink>
     <h1>Abonnements</h1>
 
-    <p v-if="loading" class="state">Chargement…</p>
+    <div v-if="loading" class="grid">
+      <SkeletonCard v-for="n in SKELETON_COUNT" :key="n" />
+    </div>
     <p v-else-if="error" class="state state--error">{{ error }}</p>
-    <p v-else-if="!videos.length" class="state">Rien de nouveau pour l'instant.</p>
+    <EmptyState v-else-if="!videos.length" message="Rien de nouveau pour l'instant." />
 
     <div v-else class="grid">
       <VideoCard
