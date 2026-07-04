@@ -1,0 +1,25 @@
+name: Feature request
+description: Propose an improvement or a new feature
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What need would this feature address?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How do you picture the solution?
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked that this isn't already listed in ROADMAP.md (the "Won't" section in particular)
+          required: true
