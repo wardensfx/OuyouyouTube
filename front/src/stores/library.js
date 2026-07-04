@@ -25,5 +25,25 @@ export const useLibraryStore = defineStore('library', {
         this.loading = false
       }
     },
+
+    async createPlaylist(title) {
+      await api.createPlaylist(title)
+      await this.loadAll()
+    },
+
+    async addToPlaylist(playlistId, videoId) {
+      await api.addPlaylistItem(playlistId, videoId)
+      await this.loadAll()
+    },
+
+    async likeVideo(videoId) {
+      await api.likeVideo(videoId)
+      await this.loadAll()
+    },
+
+    async unlikeVideo(videoId) {
+      await api.unlikeVideo(videoId)
+      await this.loadAll()
+    },
   },
 })

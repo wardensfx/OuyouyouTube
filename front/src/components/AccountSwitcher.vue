@@ -17,7 +17,9 @@ function initials(account) {
 }
 
 function avatarStyle(account) {
-  return account?.picture ? { backgroundImage: `url(${account.picture})` } : {}
+  // Proxifié + caché côté backend (2h) : évite de re-taper le CDN Google à
+  // chaque reload, qui finissait par nous 429.
+  return account?.picture ? { backgroundImage: `url(/auth/accounts/${account.id}/avatar)` } : {}
 }
 
 async function activate(id) {

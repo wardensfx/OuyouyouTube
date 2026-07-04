@@ -1,17 +1,45 @@
 <script setup>
-defineProps({ video: { type: Object, required: true } })
+defineProps({
+  video: { type: Object, required: true },
+  liked: { type: Boolean, default: false },
+  removable: { type: Boolean, default: false },
+})
+defineEmits(['like', 'unlike', 'add-to-playlist', 'remove'])
 </script>
 
 <template>
-  <RouterLink :to="{ name: 'player', params: { videoId: video.video_id } }" class="card">
-    <img :src="video.thumbnail" :alt="video.title" class="card__thumb" loading="lazy" />
-    <p class="card__title">{{ video.title }}</p>
-    <p v-if="video.channel" class="card__meta">{{ video.channel }}</p>
-  </RouterLink>
+  <div class="card">
+    <RouterLink :to="{ name: 'player', params: { videoId: video.video_id } }" class="card__link">
+      <img :src="video.thumbnail" :alt="video.title" class="card__thumb" loading="lazy" />
+      <p class="card__title">{{ video.title }}</p>
+      <p v-if="video.channel" class="card__meta">{{ video.channel }}</p>
+    </RouterLink>
+
+    <div class="card__actions">
+      <button
+        class="card__action"
+        :class="{ 'card__action--active': liked }"
+        :title="liked ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+        @click="$emit(liked ? 'unlike' : 'like', video)"
+      >{{ liked ? '♥' : '♡' }}</button>
+
+      <button class="card__action" title="Ajouter à une playlist" @click="$emit('add-to-playlist', video)">
+        +
+      </button>
+
+      <button v-if="removable" class="card__action" title="Retirer de cette playlist" @click="$emit('remove', video)">
+        ✕
+      </button>
+    </div>
+  </div>
 </template>
 
 <style scoped>
 .card {
+  display: flex;
+  flex-direction: column;
+}
+.card__link {
   display: block;
   color: inherit;
   text-decoration: none;
@@ -36,5 +64,31 @@ defineProps({ video: { type: Object, required: true } })
   font-size: 0.75rem;
   opacity: 0.6;
   margin-top: 0.15rem;
+}
+.card__actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+.card__action {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #2a2a2a;
+  background: #181818;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card__action:hover {
+  background: #232323;
+}
+.card__action--active {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
 }
 </style>

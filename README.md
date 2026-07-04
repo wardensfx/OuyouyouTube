@@ -96,6 +96,16 @@ positionner `OAUTHLIB_INSECURE_TRANSPORT=1` dans l'environnement du backend
 (déjà fait dans `docker-compose.yml` ; à définir toi-même si tu lances
 uvicorn sans Docker). **Ne jamais faire ça en prod.**
 
+**Scope OAuth élargi après coup** : `flow.authorization_url(..., include_granted_scopes="true")`
+fait remonter, en plus des scopes demandés dans la requête en cours, tous
+ceux déjà accordés à l'app par le passé (auth incrémentale Google — utile
+pour ne pas re-demander le consentement à chaque élargissement de scope).
+`oauthlib` traite par défaut tout écart avec ce qui a été demandé comme une
+erreur, y compris un scope *en plus*. Nécessite `OAUTHLIB_RELAX_TOKEN_SCOPE=1`
+dans l'environnement du backend (déjà fait dans `docker-compose.yml` et les
+quadlets Podman) — contrairement à `OAUTHLIB_INSECURE_TRANSPORT`, celui-ci
+est nécessaire aussi en prod, pas juste en dev.
+
 ## Déploiement (prod)
 
 Le service `frontend` de `docker-compose.yml` (profil `prod`) build la SPA

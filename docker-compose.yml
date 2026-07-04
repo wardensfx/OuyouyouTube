@@ -15,6 +15,11 @@ services:
       # Dev only: autorise l'échange de token OAuth en http:// (localhost sans TLS).
       # Ne jamais activer ça en prod (redirect_uri doit être en https).
       OAUTHLIB_INSECURE_TRANSPORT: "1"
+      # `include_granted_scopes=true` (auth.py) fait remonter aussi les scopes
+      # accordés lors d'une connexion précédente (auth incrémentale Google) en
+      # plus de ceux demandés dans cette requête — oauthlib traite ça comme une
+      # erreur par défaut. Nécessaire aussi en prod, pas juste en dev.
+      OAUTHLIB_RELAX_TOKEN_SCOPE: "1"
     ports:
       - "8000:8000"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

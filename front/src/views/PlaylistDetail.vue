@@ -1,13 +1,17 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { api } from '../api/client'
+import { useLibraryStore } from '../stores/library'
 import VideoCard from '../components/VideoCard.vue'
+import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 
 const props = defineProps({ id: { type: String, required: true } })
 
+const library = useLibraryStore()
 const items = ref([])
 const loading = ref(false)
 const error = ref(null)
+const modalVideo = ref(null)
 
 async function load() {
   loading.value = true
@@ -21,7 +25,15 @@ async function load() {
   }
 }
 
-onMounted(load)
+async function removeItem(video) {
+  await api.removePlaylistItem(props.id, video.item_id)
+  await load()
+}
+
+onMounted(() => {
+  load()
+  if (!library.playlists.length) library.loadAll()
+})
 watch(() => props.id, load)
 </script>
 
@@ -31,8 +43,19 @@ watch(() => props.id, load)
     <p v-if="loading" class="state">Chargement…</p>
     <p v-else-if="error" class="state state--error">{{ error }}</p>
     <div v-else class="grid">
-      <VideoCard v-for="v in items" :key="v.video_id" :video="v" />
+      <VideoCard
+        v-for="v in items"
+        :key="v.item_id"
+        :video="v"
+        removable
+        @like="library.likeVideo(v.video_id)"
+        @unlike="library.unlikeVideo(v.video_id)"
+        @add-to-playlist="modalVideo = v"
+        @remove="removeItem(v)"
+      />
     </div>
+
+    <AddToPlaylistModal v-if="modalVideo" :video="modalVideo" @close="modalVideo = null" />
   </div>
 </template>
 
