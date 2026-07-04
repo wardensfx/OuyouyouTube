@@ -17,6 +17,8 @@ const { ordered } = usePlaylistOrder(() => library.playlists)
 
 const route = useRoute()
 watch(() => route.fullPath, () => emit('close'))
+
+const appVersion = __APP_VERSION__
 </script>
 
 <template>
@@ -58,6 +60,8 @@ watch(() => route.fullPath, () => emit('close'))
       </RouterLink>
       <p v-if="!ordered.length" class="sidebar__empty">Aucune playlist pour l'instant.</p>
     </div>
+
+    <p class="sidebar__version">v{{ appVersion }}</p>
   </aside>
 </template>
 
@@ -132,6 +136,12 @@ watch(() => route.fullPath, () => emit('close'))
   font-size: 0.8rem;
   color: var(--text-dim);
   margin: 0 0.75rem;
+}
+.sidebar__version {
+  margin: auto 0.75rem 0;
+  padding-top: 0.75rem;
+  font-size: 0.7rem;
+  color: var(--text-dim);
 }
 
 @media (max-width: 768px) {
