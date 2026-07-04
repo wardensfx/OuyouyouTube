@@ -93,3 +93,19 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
   faisait planter `/auth/callback` (`InsecureTransportError`, oauthlib voit
   un callback OAuth en http). Fixé via `trusted_proxies static private_ranges`
   dans `front/Caddyfile` (`fix/caddy-trusted-proxies`, mergé).
+
+## Tests & CI
+
+- `feat/tests-ci` : premiers tests automatisés + CI GitHub Actions
+  (`.github/workflows/ci.yml`, deux jobs indépendants backend/frontend).
+  - Backend (`pytest`, `server/tests/`) : fonctions pures de
+    `downloader.py`, et vérification que les routes protégées répondent
+    bien 401 sans session (pas besoin de Redis pour ces cas — ils
+    échouent avant tout accès au cache).
+  - Frontend (`vitest`, `front/src/utils/format.test.js`) : les
+    fonctions pures de formatage (`formatDuration`, `formatViewCount`,
+    `formatRelativeDate`).
+  - Volontairement pas encore de tests composants Vue (pas
+    d'`@vue/test-utils` en place) ni de tests touchant l'API YouTube
+    réelle (nécessiterait des credentials Google en CI) — à évaluer si
+    le projet grossit encore.
