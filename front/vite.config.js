@@ -37,11 +37,12 @@ export default defineConfig({
     }),
   ],
   server: {
+    host: true,
     proxy: {
-      '/auth': 'http://localhost:8000',
-      '/playlists': 'http://localhost:8000',
-      '/favorites': 'http://localhost:8000',
-      '/video': 'http://localhost:8000',
+      '/auth': 'http://127.0.0.1:8000',
+      '/playlists': 'http://127.0.0.1:8000',
+      '/favorites': 'http://127.0.0.1:8000',
+      '/video': 'http://127.0.0.1:8000',
     },
   },
 })

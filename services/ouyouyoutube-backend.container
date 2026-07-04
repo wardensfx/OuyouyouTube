@@ -1,0 +1,28 @@
+[Container]
+ContainerName=ouyouyoutube-backend
+# Build au préalable : podman build -t ouyouyoutube-backend:latest ./server
+Image=localhost/ouyouyoutube-backend:latest
+
+# Copier server/.env vers ce chemin sur l'hôte (GOOGLE_CLIENT_ID/SECRET, etc.)
+EnvironmentFile=%h/ouyouyoutube/server.env
+Environment=REDIS_URL=redis://ouyouyoutube-redis:6379/0
+
+# --proxy-headers : fait confiance au X-Forwarded-Proto envoyé par Traefik en
+# amont, pour que oauthlib voie bien un redirect_uri https en prod.
+Exec=uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips=*
+# Pas de PublishPort : seul le frontend (Caddy) lui parle, via le réseau/pod.
+
+Network=server_gateway
+
+PodmanArgs=--pod pod_utils
+
+[Service]
+Restart=always
+RestartSec=10
+
+[Unit]
+After=network.target ouyouyoutube-redis.service
+Requires=ouyouyoutube-redis.service
+
+[Install]
+WantedBy=default.target

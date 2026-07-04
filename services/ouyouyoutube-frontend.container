@@ -1,0 +1,33 @@
+[Container]
+ContainerName=ouyouyoutube-frontend
+# Build au préalable : podman build -t ouyouyoutube-frontend:latest ./front
+Image=localhost/ouyouyoutube-frontend:latest
+
+# Adresse "brute" (pas de domaine) : désactive l'auto-HTTPS de Caddy, qui ne
+# sert qu'en HTTP en interne — Traefik gère le TLS public.
+Environment=SITE_ADDRESS=:8080
+Environment=BACKEND_ADDR=ouyouyoutube-backend:8000
+# Pas de PublishPort : Traefik route vers ce container via le réseau/pod partagé.
+
+Label=traefik.enable=true
+Label="traefik.http.routers.ouyouyoutube.rule=Host(`ouyouyoutube.d-yann.fr`)"
+Label=traefik.http.routers.ouyouyoutube.entrypoints=websecure
+Label=traefik.http.routers.ouyouyoutube.tls=true
+Label=traefik.http.routers.ouyouyoutube.service=ouyouyoutube
+Label=traefik.http.services.ouyouyoutube.loadbalancer.server.port=8080
+Label=traefik.http.routers.ouyouyoutube.middlewares=authentik
+
+Network=server_gateway
+
+PodmanArgs=--pod pod_utils
+
+[Service]
+Restart=always
+RestartSec=10
+
+[Unit]
+After=network.target ouyouyoutube-backend.service
+Requires=ouyouyoutube-backend.service
+
+[Install]
+WantedBy=default.target

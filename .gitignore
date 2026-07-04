@@ -5,6 +5,9 @@ server/**/__pycache__/
 server/.env
 server/*.pyc
 
+# Root (docker-compose / déploiement)
+/.env
+
 # Frontend
 front/node_modules/
 front/dist/

@@ -1,0 +1,17 @@
+[Container]
+ContainerName=ouyouyoutube-redis
+Image=docker.io/library/redis:7
+
+Network=server_gateway
+
+PodmanArgs=--pod pod_utils
+
+[Service]
+Restart=always
+RestartSec=10
+
+[Unit]
+After=network.target
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,54 @@
+services:
+  redis:
+    image: redis:7
+    container_name: ouyouyoutube-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  backend:
+    build: ./server
+    container_name: ouyouyoutube-backend
+    env_file: ./server/.env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      # Dev only: autorise l'échange de token OAuth en http:// (localhost sans TLS).
+      # Ne jamais activer ça en prod (redirect_uri doit être en https).
+      OAUTHLIB_INSECURE_TRANSPORT: "1"
+    ports:
+      - "8000:8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - redis
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: ./server/app
+          target: /app/app
+        - action: rebuild
+          path: ./server/requirements.txt
+
+  # Frontend + reverse proxy Caddy — image de prod (SPA buildée + TLS auto).
+  # Pas utilisé en dev (front tourne en direct via `npm run dev` pour le hot-reload).
+  # Lancer avec : docker compose --profile prod up -d --build
+  frontend:
+    build: ./front
+    container_name: ouyouyoutube-frontend
+    profiles: ["prod"]
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:8080}
+      BACKEND_ADDR: backend:8000
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -42,6 +42,118 @@ npm run dev
 Ouvre http://localhost:5173 — le proxy Vite redirige `/auth`, `/playlists`,
 `/favorites`, `/video/*` vers le backend sur le port 8000.
 
+### Backend + Redis en container (recommandé, notamment sous Windows)
+
+Redis n'a pas de build officiel Windows, et faire tourner le backend en
+container évite d'avoir à gérer un venv Python à la main. `docker-compose.yml`
+à la racine du repo lance Redis + backend, avec hot-reload :
+
+```powershell
+# Windows : Docker tourne dans une distro WSL (ex. Ubuntu)
+wsl -d Ubuntu -- bash -c "cd /mnt/c/chemin/vers/OuyouyouTube && docker compose up --watch"
+```
+
+```bash
+# macOS/Linux avec Docker installé nativement
+docker compose up --watch
+```
+
+`--watch` synchronise `server/app/` en live dans le container (les
+changements de code déclenchent le reload d'uvicorn) et rebuild l'image
+automatiquement si `requirements.txt` change. Le backend est exposé sur
+`http://localhost:8000` comme en local classique.
+
+Avant le premier lancement : `cp server/.env.example server/.env` et
+renseigner `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+
+### Frontend (toujours en direct, hors container)
+
+```bash
+cd front
+npm install
+npm run dev
+```
+
+### Backend en direct (sans Docker)
+
+```bash
+cd server
+python3 -m venv .venv && source .venv/bin/activate   # Windows: python -m venv .venv puis .\.venv\Scripts\python.exe
+pip install -r requirements.txt
+cp .env.example .env   # renseigner GOOGLE_CLIENT_ID / SECRET
+redis-server &          # ou le container Redis seul si pas de build natif (Windows)
+uvicorn app.main:app --reload --port 8000
+```
+
+**Piège IPv4/IPv6 (Windows)** : sur certaines configs, `localhost` se résout
+en priorité vers `::1` (IPv6). Si le backend n'écoute que sur `127.0.0.1`
+(IPv4), le proxy Vite renvoie `502 Bad Gateway`. `front/vite.config.js`
+pointe donc explicitement vers `http://127.0.0.1:8000` (pas `localhost`).
+
+**OAuth en HTTP local** : `oauthlib` refuse par défaut l'échange de token
+hors HTTPS. En dev, avec un `redirect_uri` en `http://localhost`, il faut
+positionner `OAUTHLIB_INSECURE_TRANSPORT=1` dans l'environnement du backend
+(déjà fait dans `docker-compose.yml` ; à définir toi-même si tu lances
+uvicorn sans Docker). **Ne jamais faire ça en prod.**
+
+## Déploiement (prod)
+
+Le service `frontend` de `docker-compose.yml` (profil `prod`) build la SPA
+et la sert via **Caddy** (`front/Dockerfile`, `front/Caddyfile`), qui fait
+aussi office de reverse proxy vers le backend pour `/auth`, `/playlists`,
+`/favorites`, `/video/*`. Un seul point d'entrée, HTTPS automatique (Let's
+Encrypt) si `SITE_ADDRESS` est un vrai nom de domaine.
+
+```bash
+cp .env.example .env   # définir SITE_ADDRESS
+docker compose --profile prod up -d --build
+```
+
+Caddy écoute sur 8080 (HTTP) / 8443 (HTTPS), publiés tels quels sur l'hôte.
+
+- `SITE_ADDRESS=:8080` (défaut) → HTTP simple, pratique pour tester en local
+  sans domaine (pas de TLS).
+- `SITE_ADDRESS=ouyouyoutube.mondomaine.fr` → Caddy obtient un certificat
+  Let's Encrypt automatiquement sur 8443 (DNS doit pointer vers l'hôte ;
+  redirige les ports externes 80/443 vers 8080/8443 sur cette machine si
+  besoin, ex. sur la box/le routeur).
+
+Dans tous les cas, `server/.env` (`GOOGLE_REDIRECT_URI`, `FRONTEND_ORIGIN`)
+doit être cohérent avec `SITE_ADDRESS` — et le `redirect_uri` déclaré dans
+Google Cloud Console doit correspondre exactement. Google refuse les
+domaines `.local` (mDNS) : impossible de tester le login OAuth via
+`http://xxx.local`, il faut un vrai domaine (ou `localhost`).
+
+### Alternative : Podman Quadlet (derrière Traefik + pod_utils existants)
+
+`services/*.container` fournit un équivalent du `docker-compose.yml` (profil
+prod) sous forme d'unités systemd Quadlet, harmonisé avec les autres services
+du même hôte (réseau `server_gateway`, pod `pod_utils`, style des labels
+Traefik) : aucun port n'est publié par ces containers, ils rejoignent
+`pod_utils` et sont rattachés à `server_gateway` comme les autres apps.
+Le frontend est protégé par le middleware `authentik` en plus du login
+Google ; `backend` et `redis` restent internes (pas de label Traefik).
+
+⚠️ `pod_utils` partage le namespace réseau entre tous ses membres : vérifie
+qu'aucun autre service du pod n'utilise déjà les ports 6379 (redis), 8000
+(backend), 8080/8443 (frontend) avant d'activer ces units.
+
+À adapter si besoin :
+- `EnvironmentFile=%h/ouyouyoutube/server.env` (backend) → copier `server/.env`
+  à cet endroit sur l'hôte.
+- Le domaine (`ouyouyoutube.d-yann.fr`) dans `ouyouyoutube-frontend.container`
+  si tu changes de nom.
+
+```bash
+podman build -t ouyouyoutube-backend:latest ./server
+podman build -t ouyouyoutube-frontend:latest ./front
+
+mkdir -p ~/.config/containers/systemd
+cp services/*.container ~/.config/containers/systemd/
+systemctl --user daemon-reload
+systemctl --user enable --now ouyouyoutube-redis.service ouyouyoutube-backend.service ouyouyoutube-frontend.service
+```
+
 ## Flow
 
 1. `/auth/login` → OAuth Google → cookie de session (le token reste en Redis, jamais côté client)
