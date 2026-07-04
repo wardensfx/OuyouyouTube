@@ -1,0 +1,25 @@
+name: Proposition de fonctionnalité
+description: Proposer une amélioration ou une nouvelle fonctionnalité
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problème à résoudre
+      description: Quel besoin cette fonctionnalité couvrirait-elle ?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposition
+      description: Comment imagines-tu la solution ?
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Avant de soumettre
+      options:
+        - label: J'ai vérifié que ce n'est pas déjà listé dans ROADMAP.md (section "Won't" notamment)
+          required: true

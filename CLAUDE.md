@@ -5,9 +5,13 @@ originale (playlists, favoris, écran d'accueil) mais le visionnage est
 streamé depuis un backend perso qui télécharge la vidéo via yt-dlp, la sert,
 puis la supprime après un TTL. Aucun stockage durable de vidéo.
 
-Usage strictement personnel, jamais distribué. Le risque légal identifié
-(contournement des protections YouTube) est celui de yt-dlp lui-même,
-accepté et assumé par l'utilisateur.
+Usage prévu strictement personnel (une instance déployée = un usage perso).
+Le code source du dépôt est public (licence MIT, voir `README.md`), mais
+ça ne change pas la vocation de l'outil : chacun héberge sa propre instance
+pour son propre compte YouTube, ce n'est pas un service public partagé. Le
+risque légal identifié (contournement des protections YouTube) est celui de
+yt-dlp lui-même, accepté et assumé par l'utilisateur de chaque instance —
+voir l'avertissement légal dans `README.md`.
 
 ## Stack (décisions actées, ne pas dévier sans discussion)
 

@@ -93,3 +93,13 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
   faisait planter `/auth/callback` (`InsecureTransportError`, oauthlib voit
   un callback OAuth en http). Fixé via `trusted_proxies static private_ranges`
   dans `front/Caddyfile` (`fix/caddy-trusted-proxies`, mergé).
+
+## Dépôt public
+
+- `docs/public-repo-prep` : préparation du passage du dépôt en public —
+  licence MIT (`LICENSE`), README refondu (avertissement légal, schémas
+  d'architecture et de séquence en Mermaid, tableau des dépendances +
+  crédits/licences), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor
+  Covenant 2.1), `SECURITY.md`, templates d'issues et de PR GitHub.
+  `CLAUDE.md` mis à jour en conséquence (le code est public, l'usage reste
+  personnel par instance).
