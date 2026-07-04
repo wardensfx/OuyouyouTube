@@ -96,6 +96,29 @@ def _video_summary(item: dict) -> dict:
     }
 
 
+async def search_videos(credentials: Credentials, query: str) -> list[dict]:
+    """search.list ne renvoie que id/snippet (pas contentDetails) — pas de
+    durée disponible ici, cohérent avec ce que VideoCard affiche déjà."""
+    cache_key = f"search:{query.lower()}"
+    cached = await get_json(cache_key)
+    if cached is not None:
+        return cached
+
+    yt = _client(credentials)
+    response = yt.search().list(part="snippet", q=query, type="video", maxResults=25).execute()
+    results = [
+        {
+            "video_id": item["id"]["videoId"],
+            "title": item["snippet"]["title"],
+            "channel": item["snippet"]["channelTitle"],
+            "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
+        }
+        for item in response.get("items", [])
+    ]
+    await set_json(cache_key, results, ttl=settings.metadata_ttl_seconds)
+    return results
+
+
 async def create_playlist(credentials: Credentials, account_id: str, title: str) -> dict:
     yt = _client(credentials)
     response = yt.playlists().insert(part="snippet", body={"snippet": {"title": title}}).execute()

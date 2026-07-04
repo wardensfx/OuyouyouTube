@@ -6,16 +6,19 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
 
 ## Must
 
-- [ ] Multi-comptes Google (switcher, un seul humain, plusieurs comptes liés)
-      — `feat/multi-account-auth`
+- [x] Multi-comptes Google (switcher, un seul humain, plusieurs comptes liés)
+      — `feat/multi-account-auth` (mergé sur `main` ; 2 commits de fix
+      poussés après coup — scope OAuth, logout/avatar — encore en PR à part,
+      pas encore mergés)
 - [ ] Scope OAuth étendu (`youtube` complet) + gestion playlists/favoris
       (créer une playlist, ajouter/retirer une vidéo, like/unlike)
-      — `feat/playlist-management`
+      — `feat/playlist-management` (PR ouverte, pas encore mergée)
 - [ ] Recherche (barre + page de résultats) — `feat/search`
 - [ ] Page d'accueil : tendances + dernières vidéos des abonnements
       — `feat/home-feed`
-- [ ] Refonte UI : navigation (sidebar/topbar), thème modernisé, cartes/menus
-      — `feat/ui-shell-redesign`
+- [ ] Refonte UI : navigation (sidebar/topbar), thème **glassmorphism dark**
+      (demande explicite : look moderne, verre dépoli/flou, sombre),
+      cartes/menus — `feat/ui-shell-redesign`
 
 ## Should
 
