@@ -15,6 +15,21 @@ def _client(credentials: Credentials):
     return build("youtube", "v3", credentials=credentials)
 
 
+def _bulk_durations(yt, video_ids: list[str]) -> dict[str, str]:
+    """videos.list accepte jusqu'à 50 ids séparés par des virgules par appel :
+    un seul appel groupé (par tranche de 50) suffit pour récupérer la durée
+    de toute une page de playlist/abonnements, plutôt qu'un appel par vidéo.
+    Nécessaire car playlistItems.list et activities.list n'exposent que le
+    contentDetails de l'ITEM (videoId, date), jamais celui de la vidéo elle-même."""
+    durations = {}
+    for i in range(0, len(video_ids), 50):
+        chunk = video_ids[i : i + 50]
+        response = yt.videos().list(part="contentDetails", id=",".join(chunk)).execute()
+        for item in response.get("items", []):
+            durations[item["id"]] = item["contentDetails"]["duration"]
+    return durations
+
+
 async def get_my_playlists(credentials: Credentials, account_id: str) -> list[dict]:
     cache_key = f"playlists:{account_id}"
     cached = await get_json(cache_key)
@@ -86,6 +101,10 @@ async def get_playlist_items(credentials: Credentials, playlist_id: str) -> list
             })
         request = yt.playlistItems().list_next(request, response)
 
+    durations = _bulk_durations(yt, [i["video_id"] for i in items])
+    for i in items:
+        i["duration"] = durations.get(i["video_id"])
+
     await set_json(cache_key, items, ttl=settings.metadata_ttl_seconds)
     return items
 
@@ -102,8 +121,8 @@ def _video_summary(item: dict) -> dict:
 
 
 async def search_videos(credentials: Credentials, query: str) -> list[dict]:
-    """search.list ne renvoie que id/snippet (pas contentDetails) — pas de
-    durée disponible ici, cohérent avec ce que VideoCard affiche déjà."""
+    """search.list ne renvoie que id/snippet (jamais contentDetails, même en
+    le demandant) — la durée nécessite un second appel groupé sur videos.list."""
     cache_key = f"search:{query.lower()}"
     cached = await get_json(cache_key)
     if cached is not None:
@@ -121,6 +140,10 @@ async def search_videos(credentials: Credentials, query: str) -> list[dict]:
         }
         for item in response.get("items", [])
     ]
+    durations = _bulk_durations(yt, [r["video_id"] for r in results])
+    for r in results:
+        r["duration"] = durations.get(r["video_id"])
+
     await set_json(cache_key, results, ttl=settings.metadata_ttl_seconds)
     return results
 
@@ -213,6 +236,10 @@ async def get_subscriptions_feed(credentials: Credentials, account_id: str) -> l
                 "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
                 "published_at": item["snippet"]["publishedAt"],
             })
+
+    durations = _bulk_durations(yt, [v["video_id"] for v in videos])
+    for v in videos:
+        v["duration"] = durations.get(v["video_id"])
 
     videos.sort(key=lambda v: v["published_at"], reverse=True)
     await set_json(cache_key, videos, ttl=settings.metadata_ttl_seconds)

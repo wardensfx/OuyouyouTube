@@ -32,11 +32,16 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       Playlists/Favoris avaient déjà leur page dédiée (`/playlists/manage`,
       `/favorites`) — ajouté `/subscriptions` et `/trending`, entrées de
       sidebar, accueil limité à 6 vignettes/section.
-- [ ] Reprises en cours : position de lecture + statut vu/non vu par
+- [x] Reprises en cours : position de lecture + statut vu/non vu par
       compte/vidéo, barre de progression sous les vignettes, menu "…" sous
-      chaque vignette (marquer vu/non vu) — `feat/watch-progress` (PR
-      ouverte, pas encore mergée). Le lecteur reprend automatiquement à la
-      position sauvegardée (si < 95% de la durée et pas marqué vu).
+      chaque vignette (marquer vu/non vu) — `feat/watch-progress` (mergé).
+      Le lecteur reprend automatiquement à la position sauvegardée (si
+      < 95% de la durée et pas marqué vu). Fix associé (branche séparée,
+      commit fait après le merge de la PR) : `fix/video-durations` —
+      `playlistItems.list`/`activities.list` n'exposent pas la durée de la
+      vidéo (seulement celle de l'item), il manquait un appel groupé
+      `videos.list(id=...)` pour l'afficher dans Playlists/Abonnements/
+      Recherche (déjà correct pour Favoris/Tendances).
 - [ ] Pages chaîne (vidéos d'une chaîne, infos) + noms de chaîne cliquables
       partout (vignettes, lecteur) — `feat/channel-pages`
 - [ ] Tire-pour-rafraîchir sur mobile (pattern natif) en haut de l'accueil
