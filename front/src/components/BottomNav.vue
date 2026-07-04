@@ -1,15 +1,23 @@
-<script setup></script>
+<script setup>
+import { Home, Search, Menu } from '@lucide/vue'
+
+defineEmits(['open-menu'])
+</script>
 
 <template>
   <nav class="bottom-nav glass">
     <RouterLink to="/" class="bottom-nav__link" active-class="bottom-nav__link--active" exact>
-      <span>🏠</span>
+      <Home :size="20" />
       <small>Accueil</small>
     </RouterLink>
     <RouterLink to="/search" class="bottom-nav__link" active-class="bottom-nav__link--active">
-      <span>🔍</span>
+      <Search :size="20" />
       <small>Recherche</small>
     </RouterLink>
+    <button class="bottom-nav__link bottom-nav__button" @click="$emit('open-menu')">
+      <Menu :size="20" />
+      <small>Menu</small>
+    </button>
   </nav>
 </template>
 
@@ -41,9 +49,14 @@
   gap: 0.15rem;
   color: var(--text-dim);
   text-decoration: none;
-  font-size: 1.1rem;
   padding: 0.25rem;
   border-radius: var(--radius-md);
+}
+.bottom-nav__button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
 }
 .bottom-nav__link small {
   font-size: 0.65rem;

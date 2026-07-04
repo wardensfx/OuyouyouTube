@@ -1,21 +1,30 @@
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { Home, Search } from '@lucide/vue'
 import { useLibraryStore } from '../stores/library'
+
+const props = defineProps({ open: { type: Boolean, default: false } })
+const emit = defineEmits(['close'])
 
 const library = useLibraryStore()
 onMounted(() => {
   if (!library.playlists.length) library.loadAll()
 })
+
+const route = useRoute()
+watch(() => route.fullPath, () => emit('close'))
 </script>
 
 <template>
-  <aside class="sidebar glass">
+  <div v-if="open" class="sidebar__backdrop" @click="emit('close')" />
+  <aside class="sidebar glass" :class="{ 'sidebar--open': open }">
     <nav class="sidebar__nav">
       <RouterLink to="/" class="sidebar__link" active-class="sidebar__link--active" exact>
-        <span class="sidebar__icon">🏠</span> Accueil
+        <Home :size="18" /> Accueil
       </RouterLink>
       <RouterLink to="/search" class="sidebar__link" active-class="sidebar__link--active">
-        <span class="sidebar__icon">🔍</span> Recherche
+        <Search :size="18" /> Recherche
       </RouterLink>
     </nav>
 
@@ -43,6 +52,9 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  position: sticky;
+  top: 0;
+  height: 100vh;
   overflow-y: auto;
 }
 .sidebar__nav {
@@ -67,9 +79,6 @@ onMounted(() => {
 .sidebar__link--active {
   background: rgba(255, 255, 255, 0.12);
   font-weight: 600;
-}
-.sidebar__icon {
-  font-size: 1.05rem;
 }
 .sidebar__link--playlist {
   overflow: hidden;
@@ -97,7 +106,24 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .sidebar {
-    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100vh;
+    z-index: 41;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    border-radius: 0;
+  }
+  .sidebar--open {
+    transform: translateX(0);
+  }
+  .sidebar__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(0, 0, 0, 0.5);
   }
 }
 </style>

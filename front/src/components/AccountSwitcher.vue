@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { UserPlus, LogOut } from '@lucide/vue'
 import { api } from '../api/client'
 
 const accounts = ref([])
@@ -51,27 +52,33 @@ onMounted(load)
     </button>
 
     <div v-if="open" class="switcher__backdrop" @click="open = false" />
-    <div v-if="open" class="switcher__panel glass">
-      <button
-        v-for="a in accounts"
-        :key="a.id"
-        class="switcher__row"
-        :class="{ 'switcher__row--active': a.active }"
-        @click="activate(a.id)"
-      >
-        <span class="avatar avatar--sm" :style="avatarStyle(a)">
-          <span v-if="!a.picture">{{ initials(a) }}</span>
-        </span>
-        <span class="switcher__row-text">
-          <span class="switcher__row-name">{{ a.name || a.email }}</span>
-          <span class="switcher__row-email">{{ a.email }}</span>
-        </span>
-      </button>
+    <Transition name="pop">
+      <div v-if="open" class="switcher__panel glass glass--strong">
+        <button
+          v-for="a in accounts"
+          :key="a.id"
+          class="switcher__row"
+          :class="{ 'switcher__row--active': a.active }"
+          @click="activate(a.id)"
+        >
+          <span class="avatar avatar--sm" :style="avatarStyle(a)">
+            <span v-if="!a.picture">{{ initials(a) }}</span>
+          </span>
+          <span class="switcher__row-text">
+            <span class="switcher__row-name">{{ a.name || a.email }}</span>
+            <span class="switcher__row-email">{{ a.email }}</span>
+          </span>
+        </button>
 
-      <div class="switcher__divider" />
-      <button class="switcher__action" @click="addAccount">+ Ajouter un compte</button>
-      <button class="switcher__action switcher__action--danger" @click="logout">Se déconnecter</button>
-    </div>
+        <div class="switcher__divider" />
+        <button class="switcher__action" @click="addAccount">
+          <UserPlus :size="16" /> Ajouter un compte
+        </button>
+        <button class="switcher__action switcher__action--danger" @click="logout">
+          <LogOut :size="16" /> Se déconnecter
+        </button>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -132,6 +139,16 @@ onMounted(load)
   min-width: 220px;
   padding: 0.4rem;
   z-index: 21;
+  transform-origin: top right;
+}
+.pop-enter-active,
+.pop-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.pop-enter-from,
+.pop-leave-to {
+  opacity: 0;
+  transform: scale(0.95) translateY(-4px);
 }
 .switcher__row {
   display: flex;
@@ -176,7 +193,9 @@ onMounted(load)
   margin: 0.3rem 0;
 }
 .switcher__action {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   width: 100%;
   background: transparent;
   border: none;

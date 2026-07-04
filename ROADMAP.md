@@ -18,20 +18,30 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       cartes/menus, métadonnées vidéo (chaîne/date sous les vignettes et le
       lecteur), accueil personnalisable, restauration d'état à la navigation
       retour (scroll + `<KeepAlive>`) — `feat/ui-shell-redesign` (PR ouverte,
-      pas encore mergée)
+      pas encore mergée). Revue UX incluse : badges de durée, progression de
+      téléchargement réelle, tiroir de navigation mobile, mises à jour
+      optimistes + toasts d'erreur (favoris/playlists), icônes lucide.
+- [ ] Pages dédiées par section (Abonnements, Tendances, chaque Playlist)
+      accessibles depuis le menu, avec un lien "Voir tout" + accueil moins
+      chargé (aperçu limité par section) — `feat/section-pages`
+- [ ] Reprises en cours : position de lecture + statut vu/non vu par
+      compte/vidéo, barre de progression sous les vignettes, menu "…" sous
+      chaque vignette (marquer vu/non vu) — `feat/watch-progress`
+- [ ] Pages chaîne (vidéos d'une chaîne, infos) + noms de chaîne cliquables
+      partout (vignettes, lecteur) — `feat/channel-pages`
+- [ ] Tire-pour-rafraîchir sur mobile (pattern natif) en haut de l'accueil
+      — `feat/pull-to-refresh`
 
 ## Should
 
-- [ ] Reprises en cours ("continue watching" — tracking de la position de
-      lecture par compte/vidéo, section dédiée sur l'accueil)
 - [x] Modale "Ajouter à une playlist" réutilisable partout (cartes vidéo,
       résultats de recherche, lecteur) — faite au fil des branches précédentes
+- [x] Toasts de confirmation d'erreur (ajout/retrait playlist, like, etc.)
+      — `feat/ui-shell-redesign`
 - [ ] Skeletons de chargement + états vides soignés
-- [ ] Toasts de confirmation (ajout/retrait playlist, like, etc.)
 
 ## Could
 
-- [ ] Pages chaîne (vidéos d'une chaîne, infos)
 - [ ] Tri/filtre des vidéos dans une playlist
 - [ ] Raccourcis clavier (lecteur, navigation)
 

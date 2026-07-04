@@ -1,12 +1,17 @@
 <script setup>
+import { ref } from 'vue'
 import AccountSwitcher from './components/AccountSwitcher.vue'
 import Sidebar from './components/Sidebar.vue'
 import BottomNav from './components/BottomNav.vue'
+import ScrollToTop from './components/ScrollToTop.vue'
+import ToastContainer from './components/ToastContainer.vue'
+
+const sidebarOpen = ref(false)
 </script>
 
 <template>
   <div class="app">
-    <Sidebar />
+    <Sidebar :open="sidebarOpen" @close="sidebarOpen = false" />
 
     <div class="app__main">
       <header class="topbar glass">
@@ -23,7 +28,9 @@ import BottomNav from './components/BottomNav.vue'
       </main>
     </div>
 
-    <BottomNav />
+    <BottomNav @open-menu="sidebarOpen = true" />
+    <ScrollToTop />
+    <ToastContainer />
   </div>
 </template>
 

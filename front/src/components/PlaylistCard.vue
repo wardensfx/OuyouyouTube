@@ -25,7 +25,7 @@ defineProps({ playlist: { type: Object, required: true } })
 }
 .card__title {
   font-size: 0.85rem;
-  margin-top: 0.4rem;
+  margin-top: 0.3rem;
   line-height: 1.25;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -35,6 +35,6 @@ defineProps({ playlist: { type: Object, required: true } })
 .card__meta {
   font-size: 0.75rem;
   opacity: 0.6;
-  margin-top: 0.15rem;
+  margin-top: 0.1rem;
 }
 </style>

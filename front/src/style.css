@@ -12,9 +12,13 @@
   --accent-strong: #a78bfa;
   --danger: #ff6b6b;
 
-  --glass-bg: rgba(255, 255, 255, 0.06);
-  --glass-bg-strong: rgba(255, 255, 255, 0.1);
-  --glass-border: rgba(255, 255, 255, 0.12);
+  /* Teintés sombres (pas blancs) : un lavis blanc à 6% sur un fond déjà
+     sombre est quasi invisible sans blur (et le blur seul ne suffit pas à
+     garantir la lisibilité selon le support navigateur) — on veut un verre
+     qui se voit même sans backdrop-filter. */
+  --glass-bg: rgba(24, 20, 36, 0.65);
+  --glass-bg-strong: rgba(24, 20, 36, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.14);
   --glass-blur: blur(20px) saturate(160%);
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 

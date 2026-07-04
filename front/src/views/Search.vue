@@ -63,7 +63,7 @@ watch(
         v-for="v in results"
         :key="v.video_id"
         :video="v"
-        @like="library.likeVideo(v.video_id)"
+        @like="library.likeVideo(v)"
         @add-to-playlist="modalVideo = v"
       />
     </div>

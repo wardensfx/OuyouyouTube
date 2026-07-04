@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { Heart, Plus, X } from '@lucide/vue'
 import { formatDuration, formatRelativeDate } from '../utils/format'
 
 const props = defineProps({
@@ -47,10 +48,12 @@ function act(name) {
         :disabled="!!pending"
         :title="liked ? 'Retirer des favoris' : 'Ajouter aux favoris'"
         @click="act(liked ? 'unlike' : 'like')"
-      >{{ liked ? '♥' : '♡' }}</button>
+      >
+        <Heart :size="14" :fill="liked ? 'currentColor' : 'none'" />
+      </button>
 
       <button class="card__action" :disabled="!!pending" title="Ajouter à une playlist" @click="act('add-to-playlist')">
-        +
+        <Plus :size="14" />
       </button>
 
       <button
@@ -60,7 +63,7 @@ function act(name) {
         title="Retirer de cette playlist"
         @click="act('remove')"
       >
-        ✕
+        <X :size="14" />
       </button>
     </div>
   </div>
@@ -100,7 +103,7 @@ function act(name) {
 }
 .card__title {
   font-size: 0.85rem;
-  margin-top: 0.4rem;
+  margin-top: 0.3rem;
   line-height: 1.25;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -110,16 +113,16 @@ function act(name) {
 .card__meta {
   font-size: 0.75rem;
   opacity: 0.6;
-  margin-top: 0.15rem;
+  margin-top: 0.1rem;
 }
 .card__actions {
   display: flex;
-  gap: 0.4rem;
-  margin-top: 0.4rem;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
 }
 .card__action {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   border: 1px solid var(--glass-border);
   background: var(--glass-bg);
@@ -127,7 +130,6 @@ function act(name) {
   -webkit-backdrop-filter: var(--glass-blur);
   color: inherit;
   cursor: pointer;
-  font-size: 0.85rem;
   line-height: 1;
   display: flex;
   align-items: center;

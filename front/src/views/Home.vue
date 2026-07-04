@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import { Settings, ChevronUp, ChevronDown, Plus } from '@lucide/vue'
 import { api } from '../api/client'
 import { useLibraryStore } from '../stores/library'
 import VideoCard from '../components/VideoCard.vue'
@@ -113,7 +114,7 @@ function move(key, dir) {
   <div class="home">
     <header class="home__header">
       <h1>Accueil</h1>
-      <button class="link-button" @click="settingsOpen = !settingsOpen">⚙ Personnaliser</button>
+      <button class="link-button" @click="settingsOpen = !settingsOpen"><Settings :size="16" /> Personnaliser</button>
     </header>
 
     <div v-if="settingsOpen" class="home-settings__backdrop" @click="settingsOpen = false" />
@@ -124,8 +125,8 @@ function move(key, dir) {
           {{ SECTION_LABELS[key] }}
         </label>
         <div class="home-settings__buttons">
-          <button :disabled="orderIndex(key) === 0" @click="move(key, -1)">↑</button>
-          <button :disabled="orderIndex(key) === prefs.order.length - 1" @click="move(key, 1)">↓</button>
+          <button :disabled="orderIndex(key) === 0" @click="move(key, -1)"><ChevronUp :size="16" /></button>
+          <button :disabled="orderIndex(key) === prefs.order.length - 1" @click="move(key, 1)"><ChevronDown :size="16" /></button>
         </div>
       </div>
     </div>
@@ -141,7 +142,7 @@ function move(key, dir) {
             v-for="v in subscriptions"
             :key="v.video_id"
             :video="v"
-            @like="library.likeVideo(v.video_id)"
+            @like="library.likeVideo(v)"
             @add-to-playlist="modalVideo = v"
           />
         </div>
@@ -156,7 +157,7 @@ function move(key, dir) {
             v-for="v in trending"
             :key="v.video_id"
             :video="v"
-            @like="library.likeVideo(v.video_id)"
+            @like="library.likeVideo(v)"
             @add-to-playlist="modalVideo = v"
           />
         </div>
@@ -165,7 +166,7 @@ function move(key, dir) {
       <section v-show="!isHidden('playlists')" class="section" :style="{ order: orderIndex('playlists') }">
         <div class="section__header">
           <h2>Playlists</h2>
-          <button class="link-button" @click="creating = !creating">+ Nouvelle</button>
+          <button class="link-button" @click="creating = !creating"><Plus :size="16" /> Nouvelle</button>
         </div>
 
         <p v-if="library.loading" class="state">Chargement…</p>
@@ -176,9 +177,9 @@ function move(key, dir) {
             <button type="submit" class="new-playlist__submit" :disabled="!newPlaylistTitle.trim()">Créer</button>
           </form>
 
-          <div class="grid">
+          <TransitionGroup tag="div" name="grid" class="grid">
             <PlaylistCard v-for="p in library.playlists" :key="p.id" :playlist="p" />
-          </div>
+          </TransitionGroup>
         </template>
       </section>
 
@@ -186,7 +187,7 @@ function move(key, dir) {
         <h2>Favoris</h2>
         <p v-if="library.loading" class="state">Chargement…</p>
         <p v-else-if="library.error" class="state state--error">{{ library.error }}</p>
-        <div v-else class="grid">
+        <TransitionGroup v-else tag="div" name="grid" class="grid">
           <VideoCard
             v-for="v in library.favorites"
             :key="v.video_id"
@@ -195,7 +196,7 @@ function move(key, dir) {
             @unlike="library.unlikeVideo(v.video_id)"
             @add-to-playlist="modalVideo = v"
           />
-        </div>
+        </TransitionGroup>
       </section>
     </div>
 
@@ -270,6 +271,9 @@ function move(key, dir) {
   margin: 0 0 0.75rem;
 }
 .link-button {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   background: transparent;
   border: none;
   color: inherit;
@@ -310,6 +314,22 @@ function move(key, dir) {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
+  position: relative;
+}
+.grid-enter-active,
+.grid-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.grid-enter-from,
+.grid-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+.grid-leave-active {
+  position: absolute;
+}
+.grid-move {
+  transition: transform 0.25s ease;
 }
 .state {
   padding: 1rem 0;
