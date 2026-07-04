@@ -168,7 +168,60 @@ sequenceDiagram
 - Node 18+
 - Redis (`redis-server`)
 - Un projet Google Cloud avec l'API "YouTube Data API v3" activée et des
-  identifiants OAuth 2.0 (type "Web application")
+  identifiants OAuth 2.0 (type "Web application") — voir le mode opératoire
+  détaillé ci-dessous.
+
+### Configurer Google Cloud (une seule fois)
+
+L'app a besoin de tes propres identifiants OAuth pour accéder à *ton* compte
+YouTube. Ça se configure entièrement depuis la
+[console Google Cloud](https://console.cloud.google.com/), gratuitement.
+
+1. **Créer un projet** — sélecteur de projet en haut de la console → **Nouveau
+   projet** → nom libre (ex. `ouyouyoutube`).
+2. **Activer l'API YouTube Data v3** — menu **API et services →
+   Bibliothèque** → cherche **YouTube Data API v3** → **Activer**.
+3. **Configurer l'écran de consentement OAuth** — **API et services → Écran
+   de consentement OAuth** :
+   - Type utilisateur : **Externe** (un compte Gmail perso ne peut pas créer
+     d'app "interne").
+   - Renseigne un nom d'app, un email support et un email développeur.
+   - Section **Scopes** : ajoute explicitement les 4 scopes utilisés par
+     l'app (`server/app/auth.py`) :
+     - `https://www.googleapis.com/auth/youtube`
+     - `openid`
+     - `https://www.googleapis.com/auth/userinfo.email`
+     - `https://www.googleapis.com/auth/userinfo.profile`
+
+     ⚠️ Un scope non déclaré ici explicitement est silencieusement retiré de
+     la réponse du token par Google, sans erreur visible — voir
+     `ROADMAP.md` (section "Contraintes connues").
+   - Section **Utilisateurs test** : tant que l'app n'est pas publiée/validée
+     par Google, seuls les comptes ajoutés ici peuvent se connecter — ajoute
+     ta propre adresse Gmail.
+4. **Créer les identifiants OAuth 2.0** — **API et services → Identifiants
+   → Créer des identifiants → ID client OAuth** :
+   - Type d'application : **Application Web**.
+   - **URI de redirection autorisés** : doit correspondre *exactement* à
+     `GOOGLE_REDIRECT_URI` dans `server/.env` (voir plus bas). En local avec
+     les valeurs par défaut :
+     ```
+     http://localhost:8000/api/auth/callback
+     ```
+   - Valide, puis récupère le **Client ID** et le **Client Secret** affichés.
+5. **Renseigner `server/.env`** (voir la section suivante pour le créer) :
+   ```
+   GOOGLE_CLIENT_ID=xxxxxxxxxx.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=xxxxxxxxxx
+   GOOGLE_REDIRECT_URI=http://localhost:8000/api/auth/callback
+   ```
+
+En déploiement (domaine réel derrière Caddy/Traefik), remplace l'URI de
+redirection par `https://ton-domaine/api/auth/callback` — à la fois dans
+Google Cloud Console **et** dans `GOOGLE_REDIRECT_URI`/`FRONTEND_ORIGIN`
+(voir la section [Déploiement](#déploiement-prod)). Google refuse les
+domaines `.local` (mDNS) : impossible de tester avec `http://xxx.local`, il
+faut `localhost` ou un vrai domaine.
 
 ### Backend + Redis en container (recommandé, notamment sous Windows)
 
