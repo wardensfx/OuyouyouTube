@@ -1,8 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { Heart, Plus, X, MoreVertical, Check, Eye, EyeOff } from '@lucide/vue'
-import { useLibraryStore } from '../stores/library'
 import { useProgressStore } from '../stores/progress'
+import { useLikeButton } from '../composables/useLikeButton'
 import { formatDuration, formatRelativeDate } from '../utils/format'
 
 const props = defineProps({
@@ -12,15 +12,11 @@ const props = defineProps({
 })
 const emit = defineEmits(['add-to-playlist', 'remove'])
 
-const library = useLibraryStore()
 const progressStore = useProgressStore()
 
 const publishedLabel = computed(() => formatRelativeDate(props.video.published_at))
 const durationLabel = computed(() => formatDuration(props.video.duration))
-// Calculé depuis le store (pas une prop figée par le parent) : la couleur
-// du cœur reste juste partout où la vidéo apparaît, y compris hors de la
-// section Favoris.
-const liked = computed(() => library.favorites.some((v) => v.video_id === props.video.video_id))
+const { liked, pending: likePending, pulsing, toggleLike } = useLikeButton(() => props.video)
 
 const progress = computed(() => progressStore.items[props.video.video_id])
 const progressPercent = computed(() => {
@@ -30,24 +26,11 @@ const progressPercent = computed(() => {
 })
 const watched = computed(() => !!progress.value?.watched)
 
-// Anti-double-clic : les actions sont async, on bloque juste brièvement le
-// bouton concerné le temps que ça se joue.
+// Anti-double-clic pour l'ajout à une playlist / le retrait : les actions
+// sont async, on bloque juste brièvement le bouton concerné le temps que
+// ça se joue. Indépendant du "pending" du bouton Like (voir useLikeButton).
 const pending = ref(null)
-const pulsing = ref(false)
 const menuOpen = ref(false)
-
-async function toggleLike() {
-  if (pending.value) return
-  pending.value = 'like'
-  pulsing.value = true
-  setTimeout(() => (pulsing.value = false), 300)
-  try {
-    if (liked.value) await library.unlikeVideo(props.video.video_id)
-    else await library.likeVideo(props.video)
-  } finally {
-    pending.value = null
-  }
-}
 
 function act(name) {
   if (pending.value) return
@@ -95,7 +78,7 @@ async function toggleWatched() {
         v-if="showLike"
         class="card__action"
         :class="{ 'card__action--active': liked, 'card__action--pulse': pulsing }"
-        :disabled="!!pending"
+        :disabled="likePending"
         :title="liked ? 'Retirer des favoris' : 'Ajouter aux favoris'"
         @click="toggleLike"
       >
