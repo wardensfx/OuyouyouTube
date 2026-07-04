@@ -11,8 +11,7 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8000/auth/callback"
 
-    # Session / JWT
-    secret_key: str = "change-me-in-prod"
+    # Session
     session_cookie_name: str = "ytpwa_session"
 
     # Stockage / cache vidéo

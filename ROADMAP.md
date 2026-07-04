@@ -42,8 +42,13 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       vidéo (seulement celle de l'item), il manquait un appel groupé
       `videos.list(id=...)` pour l'afficher dans Playlists/Abonnements/
       Recherche (déjà correct pour Favoris/Tendances).
-- [ ] Pages chaîne (vidéos d'une chaîne, infos) + noms de chaîne cliquables
-      partout (vignettes, lecteur) — `feat/channel-pages`
+- [x] Pages chaîne (vidéos d'une chaîne, infos) + noms de chaîne cliquables
+      partout (vignettes, lecteur) — `feat/channel-pages`. Passe par la
+      playlist "uploads" de la chaîne (`channels.list(contentDetails)` +
+      `playlistItems.list`, 1 unité) plutôt que `search.list` (100 unités)
+      pour lister les vidéos, même logique que les abonnements. Ajout de
+      `channel_id` à tous les payloads vidéo (résumé, items de playlist,
+      recherche, abonnements) pour permettre le lien cliquable.
 - [x] Tire-pour-rafraîchir sur mobile (pattern natif) en haut de l'accueil
       — `feat/pull-to-refresh`. Composant `PullToRefresh.vue` générique
       (gestes tactiles seulement, aucun effet sur desktop/souris), recharge
@@ -95,3 +100,45 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
   faisait planter `/auth/callback` (`InsecureTransportError`, oauthlib voit
   un callback OAuth en http). Fixé via `trusted_proxies static private_ranges`
   dans `front/Caddyfile` (`fix/caddy-trusted-proxies`, mergé).
+
+## Sécurité — revue et correctifs
+
+- `fix/video-id-validation` : `video_id` n'était pas validé côté backend
+  avant d'atterrir dans un chemin de fichier (`downloader.py`) et dans
+  l'URL passée à yt-dlp. Contrainte ajoutée (`Path`/`Field` avec pattern
+  `^[A-Za-z0-9_-]{11}$`, le format fixe d'un ID YouTube) sur toutes les
+  routes concernées (`/video/*`, `/favorites/{video_id}`, `AddItemBody`).
+  Le routing Starlette bloquait déjà les tentatives contenant un `/` (404,
+  pas de correspondance de route), mais rien n'empêchait un ID mal formé
+  sans slash d'atteindre `downloader.py` — corrigé.
+- Vérifié à cette occasion : cookie de session `httponly`/`secure`/
+  `samesite=lax`, flow OAuth avec PKCE + `state` correctement invalidé
+  après usage (`getdel`), CORS restreint à `FRONTEND_ORIGIN` (pas de
+  wildcard) — rien à signaler de ce côté.
+- `SECRET_KEY` retiré de `config.py`/`.env.example` : résidu du squelette
+  initial, jamais utilisé nulle part (les sessions sont des tokens
+  aléatoires en Redis, pas des cookies signés) — un scanner de sécu sur un
+  repo public l'aurait signalé comme "secret par défaut".
+- Limite connue, pas corrigée : pas de rate-limiting sur
+  `POST /video/{id}/prepare` (déclenche un téléchargement yt-dlp). Le
+  garde-fou existant (`prepare_video` ignore un appel si déjà en cours
+  pour le même `video_id`) limite les doublons mais pas le nombre total de
+  téléchargements concurrents déclenchables par un compte authentifié.
+  Acceptable pour un usage perso mono-utilisateur ; à revisiter si le
+  projet évolue vers un vrai multi-utilisateurs.
+
+## Tests & CI
+
+- `feat/tests-ci` : premiers tests automatisés + CI GitHub Actions
+  (`.github/workflows/ci.yml`, deux jobs indépendants backend/frontend).
+  - Backend (`pytest`, `server/tests/`) : fonctions pures de
+    `downloader.py`, et vérification que les routes protégées répondent
+    bien 401 sans session (pas besoin de Redis pour ces cas — ils
+    échouent avant tout accès au cache).
+  - Frontend (`vitest`, `front/src/utils/format.test.js`) : les
+    fonctions pures de formatage (`formatDuration`, `formatViewCount`,
+    `formatRelativeDate`).
+  - Volontairement pas encore de tests composants Vue (pas
+    d'`@vue/test-utils` en place) ni de tests touchant l'API YouTube
+    réelle (nécessiterait des credentials Google en CI) — à évaluer si
+    le projet grossit encore.
