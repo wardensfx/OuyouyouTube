@@ -42,10 +42,17 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       vidéo (seulement celle de l'item), il manquait un appel groupé
       `videos.list(id=...)` pour l'afficher dans Playlists/Abonnements/
       Recherche (déjà correct pour Favoris/Tendances).
-- [ ] Pages chaîne (vidéos d'une chaîne, infos) + noms de chaîne cliquables
-      partout (vignettes, lecteur) — `feat/channel-pages`
-- [ ] Tire-pour-rafraîchir sur mobile (pattern natif) en haut de l'accueil
-      — `feat/pull-to-refresh`
+- [x] Pages chaîne (vidéos d'une chaîne, infos) + noms de chaîne cliquables
+      partout (vignettes, lecteur) — `feat/channel-pages`. Passe par la
+      playlist "uploads" de la chaîne (`channels.list(contentDetails)` +
+      `playlistItems.list`, 1 unité) plutôt que `search.list` (100 unités)
+      pour lister les vidéos, même logique que les abonnements. Ajout de
+      `channel_id` à tous les payloads vidéo (résumé, items de playlist,
+      recherche, abonnements) pour permettre le lien cliquable.
+- [x] Tire-pour-rafraîchir sur mobile (pattern natif) en haut de l'accueil
+      — `feat/pull-to-refresh`. Composant `PullToRefresh.vue` générique
+      (gestes tactiles seulement, aucun effet sur desktop/souris), recharge
+      abonnements/tendances/playlists/favoris + progression en parallèle.
 
 ## Should
 
@@ -53,12 +60,24 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       résultats de recherche, lecteur) — faite au fil des branches précédentes
 - [x] Toasts de confirmation succès/erreur (ajout/retrait playlist, like, etc.)
       — `feat/ui-shell-redesign`
-- [ ] Skeletons de chargement + états vides soignés
+- [x] Skeletons de chargement + états vides soignés — `feat/loading-states`.
+      `SkeletonCard.vue` (shimmer réutilisable via la classe globale
+      `.skeleton`) remplace les "Chargement…" texte dans toutes les grilles
+      de vidéos/playlists ; `EmptyState.vue` (icône + message) remplace les
+      états vides plats, y compris ceux qui n'existaient pas encore
+      (playlist vide, aucun favori/playlist sur l'accueil).
 
 ## Could
 
-- [ ] Tri/filtre des vidéos dans une playlist
-- [ ] Raccourcis clavier (lecteur, navigation)
+- [x] Tri/filtre des vidéos dans une playlist — `feat/playlist-sort-filter`.
+      Filtre texte (titre/chaîne) + tri (ordre playlist, titre, date,
+      durée), tout côté client (les items sont déjà chargés en entier).
+- [x] Raccourcis clavier (lecteur, navigation) — `feat/keyboard-shortcuts`.
+      Lecteur façon YouTube (espace/k lecture, flèches/j-l seek ±10s,
+      flèches haut/bas volume, m mute, f plein écran). Navigation : "/"
+      global vers la recherche avec focus auto. Tous ignorés si le focus
+      est déjà dans un champ de saisie ou qu'une touche modificatrice est
+      pressée.
 
 ## Won't (pour l'instant)
 
@@ -93,6 +112,14 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
   faisait planter `/auth/callback` (`InsecureTransportError`, oauthlib voit
   un callback OAuth en http). Fixé via `trusted_proxies static private_ranges`
   dans `front/Caddyfile` (`fix/caddy-trusted-proxies`, mergé).
+- Messages d'erreur yt-dlp différenciés — `feat/ytdlp-error-messages`.
+  `downloader.py` renvoyait la trace brute de l'exception telle quelle.
+  yt-dlp ne distingue la plupart des cas que par le texte du message (pas
+  de sous-classe dédiée) sauf `GeoRestrictedError`/`UnavailableVideoError` ;
+  reconnaissance des tournures les plus courantes (vidéo privée,
+  vérification d'âge, réservée aux membres, supprimée, pas encore
+  disponible) pour afficher un message actionnable côté lecteur au lieu
+  du texte brut yt-dlp.
 
 ## Sécurité — revue et correctifs
 

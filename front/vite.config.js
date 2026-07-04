@@ -7,10 +7,10 @@ export default defineConfig({
     vue(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons/*.png'],
+      includeAssets: ['favicon.png', 'icons/*.png'],
       manifest: {
-        name: 'YT Stream',
-        short_name: 'YTStream',
+        name: 'OuyouyouTube',
+        short_name: 'OuyouyouTube',
         description: 'Client YouTube personnel — playlists, favoris, lecture streamée',
         theme_color: '#0f0f0f',
         background_color: '#0f0f0f',

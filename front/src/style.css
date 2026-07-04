@@ -63,3 +63,25 @@ h1 {
 .glass--strong {
   background: var(--glass-bg-strong);
 }
+
+/* Blocs de squelette réutilisés par SkeletonCard — un seul endroit à
+   ajuster pour l'effet de chargement partout dans l'app. */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.12) 37%,
+    rgba(255, 255, 255, 0.06) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-pulse 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes skeleton-pulse {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}

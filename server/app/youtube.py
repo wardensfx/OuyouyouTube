@@ -95,6 +95,7 @@ async def get_playlist_items(credentials: Credentials, playlist_id: str) -> list
                 # videoOwnerChannelTitle = chaîne de la vidéo ; channelTitle
                 # (snippet) serait la chaîne propriétaire de la PLAYLIST.
                 "channel": item["snippet"].get("videoOwnerChannelTitle"),
+                "channel_id": item["snippet"].get("videoOwnerChannelId"),
                 "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
                 "position": item["snippet"]["position"],
                 "published_at": item["contentDetails"].get("videoPublishedAt"),
@@ -114,6 +115,7 @@ def _video_summary(item: dict) -> dict:
         "video_id": item["id"],
         "title": item["snippet"]["title"],
         "channel": item["snippet"]["channelTitle"],
+        "channel_id": item["snippet"]["channelId"],
         "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
         "duration": item["contentDetails"]["duration"],  # format ISO 8601
         "published_at": item["snippet"]["publishedAt"],
@@ -135,6 +137,7 @@ async def search_videos(credentials: Credentials, query: str) -> list[dict]:
             "video_id": item["id"]["videoId"],
             "title": item["snippet"]["title"],
             "channel": item["snippet"]["channelTitle"],
+            "channel_id": item["snippet"]["channelId"],
             "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
             "published_at": item["snippet"]["publishedAt"],
         }
@@ -233,6 +236,7 @@ async def get_subscriptions_feed(credentials: Credentials, account_id: str) -> l
                 "video_id": upload["videoId"],
                 "title": item["snippet"]["title"],
                 "channel": item["snippet"]["channelTitle"],
+                "channel_id": item["snippet"]["channelId"],
                 "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
                 "published_at": item["snippet"]["publishedAt"],
             })
@@ -298,3 +302,70 @@ async def rate_video(credentials: Credentials, account_id: str, video_id: str, l
     yt = _client(credentials)
     yt.videos().rate(id=video_id, rating="like" if liked else "none").execute()
     await get_redis().delete(f"liked:{account_id}")
+
+
+async def get_channel_info(credentials: Credentials, channel_id: str) -> dict | None:
+    cache_key = f"channel:{channel_id}"
+    cached = await get_json(cache_key)
+    if cached is not None:
+        return cached
+
+    yt = _client(credentials)
+    response = yt.channels().list(part="snippet,statistics", id=channel_id).execute()
+    items = response.get("items", [])
+    if not items:
+        return None
+
+    item = items[0]
+    stats = item.get("statistics", {})
+    info = {
+        "channel_id": item["id"],
+        "title": item["snippet"]["title"],
+        "description": item["snippet"].get("description", ""),
+        "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
+        "subscriber_count": None if stats.get("hiddenSubscriberCount") else stats.get("subscriberCount"),
+        "video_count": stats.get("videoCount"),
+    }
+    await set_json(cache_key, info, ttl=settings.metadata_ttl_seconds)
+    return info
+
+
+async def get_channel_videos(credentials: Credentials, channel_id: str) -> list[dict]:
+    """Passe par la playlist "uploads" de la chaîne (1 unité) plutôt que
+    search.list (100 unités) — même logique d'économie de quota que pour
+    les abonnements (cf. get_subscriptions_feed)."""
+    cache_key = f"channel_videos:{channel_id}"
+    cached = await get_json(cache_key)
+    if cached is not None:
+        return cached
+
+    yt = _client(credentials)
+    channel_response = yt.channels().list(part="contentDetails", id=channel_id).execute()
+    channel_items = channel_response.get("items", [])
+    if not channel_items:
+        return []
+    uploads_playlist_id = channel_items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
+
+    videos = []
+    request = yt.playlistItems().list(
+        part="snippet,contentDetails", playlistId=uploads_playlist_id, maxResults=50
+    )
+    while request is not None:
+        response = request.execute()
+        for item in response.get("items", []):
+            videos.append({
+                "video_id": item["contentDetails"]["videoId"],
+                "title": item["snippet"]["title"],
+                "channel": item["snippet"].get("channelTitle"),
+                "channel_id": channel_id,
+                "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
+                "published_at": item["contentDetails"].get("videoPublishedAt"),
+            })
+        request = yt.playlistItems().list_next(request, response)
+
+    durations = _bulk_durations(yt, [v["video_id"] for v in videos])
+    for v in videos:
+        v["duration"] = durations.get(v["video_id"])
+
+    await set_json(cache_key, videos, ttl=settings.metadata_ttl_seconds)
+    return videos

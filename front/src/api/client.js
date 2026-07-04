@@ -57,6 +57,9 @@ export const api = {
   getVideoStatus: (videoId) => request(`/video/${videoId}/status`),
   streamUrl: (videoId) => `${API_BASE}/video/${videoId}/stream`,
 
+  getChannel: (channelId) => request(`/channels/${channelId}`),
+  getChannelVideos: (channelId) => request(`/channels/${channelId}/videos`),
+
   getAccounts: () => request('/auth/accounts'),
   activateAccount: (accountId) => request(`/auth/accounts/${accountId}/activate`, { method: 'POST' }),
   unlinkAccount: (accountId) => request(`/auth/accounts/${accountId}`, { method: 'DELETE' }),
