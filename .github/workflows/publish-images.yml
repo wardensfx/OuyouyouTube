@@ -1,8 +1,15 @@
 name: Publish container images
 
 on:
-  release:
-    types: [published]
+  # Dispatched explicitly by release-please.yml once a release is actually
+  # created — see the comment there for why this can't just be
+  # `on: release: published`.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build and publish (e.g. v0.3.0)"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -16,6 +23,8 @@ jobs:
         component: [server, front]
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
 
       - uses: docker/setup-buildx-action@v3
 
@@ -30,7 +39,7 @@ jobs:
           context: ${{ matrix.component }}
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/ouyouyoutube-${{ matrix.component }}:${{ github.event.release.tag_name }}
+            ghcr.io/${{ github.repository_owner }}/ouyouyoutube-${{ matrix.component }}:${{ inputs.tag }}
             ghcr.io/${{ github.repository_owner }}/ouyouyoutube-${{ matrix.component }}:latest
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}

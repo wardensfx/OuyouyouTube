@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { getValue, setValue } from '../db'
+import { getValue, setValue, clearStore } from '../db'
 
 // L'API YouTube Data v3 n'expose pas l'historique de visionnage réel de
 // l'utilisateur (activities.list ne renvoie que l'activité de chaîne —
@@ -37,6 +37,11 @@ export const useHistoryStore = defineStore('history', {
       const next = [entry, ...rest].slice(0, MAX_ENTRIES)
       this.entries = next
       return setValue(STORE, KEY, next)
+    },
+    async clear() {
+      await this.load()
+      this.entries = []
+      await clearStore(STORE)
     },
   },
 })

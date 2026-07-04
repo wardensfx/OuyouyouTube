@@ -153,6 +153,18 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
   téléchargements concurrents déclenchables par un compte authentifié.
   Acceptable pour un usage perso mono-utilisateur ; à revisiter si le
   projet évolue vers un vrai multi-utilisateurs.
+- `front/src/db/` (IndexedDB — playlist order, historique) n'était pas
+  scopé par compte : IndexedDB n'est cloisonné que par origine, pas par
+  compte Google actif côté session, contrairement à tout l'état
+  équivalent côté serveur (favoris, playlists, vu/non-vu). Un utilisateur
+  avec plusieurs comptes liés (switcher) voyait l'historique/l'ordre des
+  playlists d'un compte se mélanger avec ceux d'un autre sur le même
+  appareil. Corrigé : la base est maintenant nommée
+  `ouyouyoutube:{account_id}` (résolu via `/api/auth/accounts`), une
+  bascule de compte recharge de toute façon la page entière donc pas
+  besoin de gérer un changement de compte "à chaud". Trouvé lors d'une
+  revue de sécurité automatisée sur les changements de la session
+  précédente (issue #56).
 
 ## Tests & CI
 

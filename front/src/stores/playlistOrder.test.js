@@ -1,8 +1,16 @@
 import 'fake-indexeddb/auto'
 import { openDB } from 'idb'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { DB_VERSION, STORES, dbNameFor } from '../db'
 import { usePlaylistOrderStore } from './playlistOrder'
+
+// db/index.js resolves the active account via the API to scope the
+// database per account (see #56) — stub a single fixed active account so
+// tests don't depend on a real backend.
+vi.mock('../api/client', () => ({
+  api: { getAccounts: () => Promise.resolve([{ id: 'test-account', active: true }]) },
+}))
 
 describe('usePlaylistOrderStore', () => {
   beforeEach(async () => {
@@ -10,9 +18,9 @@ describe('usePlaylistOrderStore', () => {
     // db/index.js memoizes its IndexedDB connection at module scope, so it
     // survives across tests in this file — clear its data directly (via an
     // independent connection to the same database) for real test isolation.
-    const db = await openDB('ouyouyoutube', 2, {
+    const db = await openDB(dbNameFor('test-account'), DB_VERSION, {
       upgrade(db) {
-        for (const name of ['playlist_order', 'history']) {
+        for (const name of STORES) {
           if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: 'key' })
         }
       },
@@ -59,9 +67,31 @@ describe('usePlaylistOrderStore', () => {
   it('move() is a no-op out of bounds', async () => {
     const store = usePlaylistOrderStore()
     await store.sync([{ id: 'p1' }, { id: 'p2' }])
-    store.move('p1', -1)
+    await store.move('p1', -1)
     expect(store.ids).toEqual(['p1', 'p2'])
-    store.move('missing', 1)
+    await store.move('missing', 1)
     expect(store.ids).toEqual(['p1', 'p2'])
+  })
+
+  it('move() called before the initial load resolves is not silently lost', async () => {
+    // Regression test for #54: move() now awaits _ensureLoaded() first,
+    // so a call racing the initial IndexedDB read no longer gets dropped
+    // (and then clobbered when the pending load resolves afterwards).
+    const db = await openDB(dbNameFor('test-account'), DB_VERSION, {
+      upgrade(db) {
+        for (const name of STORES) {
+          if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: 'key' })
+        }
+      },
+    })
+    await db.put('playlist_order', { key: 'ids', value: ['p1', 'p2'] })
+    db.close()
+
+    const store = usePlaylistOrderStore()
+    // No await here on purpose: fire move() immediately, before the
+    // store's own lazy load has had a chance to resolve.
+    const movePromise = store.move('p1', 1)
+    await movePromise
+    expect(store.ids).toEqual(['p2', 'p1'])
   })
 })

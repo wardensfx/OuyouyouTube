@@ -103,7 +103,12 @@ async function toggleWatched() {
             <component :is="watched ? EyeOff : Eye" :size="14" />
             {{ watched ? 'Marquer comme non vue' : 'Marquer comme vue' }}
           </button>
-          <button v-if="removable" class="card__menu-item" @click="act('remove'); menuOpen = false">
+          <button
+            v-if="removable"
+            class="card__menu-item"
+            :disabled="!!pending"
+            @click="act('remove'); menuOpen = false"
+          >
             <X :size="14" />
             Retirer de cette playlist
           </button>
@@ -274,5 +279,9 @@ async function toggleWatched() {
 }
 .card__menu-item:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+.card__menu-item:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 </style>

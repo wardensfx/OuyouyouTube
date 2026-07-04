@@ -30,7 +30,8 @@ export const usePlaylistOrderStore = defineStore('playlistOrder', {
       const changed = next.length !== this.ids.length || next.some((id, i) => id !== this.ids[i])
       if (changed) this.ids = next
     },
-    move(id, dir) {
+    async move(id, dir) {
+      await this._ensureLoaded()
       const arr = [...this.ids]
       const idx = arr.indexOf(id)
       const target = idx + dir
