@@ -8,6 +8,7 @@ const props = defineProps({ videoId: { type: String, required: true } })
 const status = ref('idle') // idle | downloading | ready | error
 const errorMessage = ref(null)
 const info = ref(null)
+const progress = ref(0)
 let pollTimer = null
 
 async function loadInfo() {
@@ -22,6 +23,7 @@ async function start() {
   status.value = 'downloading'
   errorMessage.value = null
   info.value = null
+  progress.value = 0
   try {
     await Promise.all([api.prepareVideo(props.videoId), loadInfo()])
     poll()
@@ -43,6 +45,7 @@ async function poll() {
       errorMessage.value = s.error || 'Échec du téléchargement'
       return
     }
+    if (s.progress !== undefined) progress.value = Number(s.progress)
     pollTimer = setTimeout(poll, 1500)
   } catch (e) {
     status.value = 'error'
@@ -67,7 +70,11 @@ watch(() => props.videoId, () => {
 
     <div v-if="status === 'downloading'" class="state">
       <div class="spinner" />
-      <p>Préparation de la vidéo…</p>
+      <p>{{ info?.title ? `Préparation de « ${info.title} »…` : 'Préparation de la vidéo…' }}</p>
+      <div class="progress">
+        <div class="progress__bar" :style="{ width: `${progress}%` }" />
+      </div>
+      <p class="progress__label">{{ progress }} %</p>
     </div>
 
     <p v-else-if="status === 'error'" class="state state--error">
@@ -148,6 +155,23 @@ watch(() => props.videoId, () => {
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+.progress {
+  width: 100%;
+  max-width: 320px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.progress__bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+.progress__label {
+  font-size: 0.8rem;
+  color: var(--text-dim);
 }
 @keyframes spin {
   to { transform: rotate(360deg); }

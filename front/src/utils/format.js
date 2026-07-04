@@ -22,6 +22,18 @@ export function formatRelativeDate(iso) {
   return "à l'instant"
 }
 
+export function formatDuration(iso) {
+  if (!iso) return null
+  const match = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(iso)
+  if (!match) return null
+  const hours = Number(match[1] || 0)
+  const minutes = Number(match[2] || 0)
+  const seconds = Number(match[3] || 0)
+  const pad = (n) => String(n).padStart(2, '0')
+  if (hours) return `${hours}:${pad(minutes)}:${pad(seconds)}`
+  return `${minutes}:${pad(seconds)}`
+}
+
 export function formatViewCount(count) {
   const n = Number(count)
   if (!n) return null

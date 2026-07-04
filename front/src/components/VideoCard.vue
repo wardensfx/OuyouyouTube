@@ -1,21 +1,37 @@
 <script setup>
-import { computed } from 'vue'
-import { formatRelativeDate } from '../utils/format'
+import { computed, ref } from 'vue'
+import { formatDuration, formatRelativeDate } from '../utils/format'
 
 const props = defineProps({
   video: { type: Object, required: true },
   liked: { type: Boolean, default: false },
   removable: { type: Boolean, default: false },
 })
-defineEmits(['like', 'unlike', 'add-to-playlist', 'remove'])
+const emit = defineEmits(['like', 'unlike', 'add-to-playlist', 'remove'])
 
 const publishedLabel = computed(() => formatRelativeDate(props.video.published_at))
+const durationLabel = computed(() => formatDuration(props.video.duration))
+
+// Anti-double-clic : les actions sont async côté parent, on ne sait pas
+// quand elles finissent — on bloque juste brièvement le bouton concerné.
+const pending = ref(null)
+function act(name) {
+  if (pending.value) return
+  pending.value = name
+  emit(name, props.video)
+  setTimeout(() => {
+    pending.value = null
+  }, 600)
+}
 </script>
 
 <template>
   <div class="card">
     <RouterLink :to="{ name: 'player', params: { videoId: video.video_id } }" class="card__link">
-      <img :src="video.thumbnail" :alt="video.title" class="card__thumb" loading="lazy" />
+      <div class="card__thumb-wrap">
+        <img :src="video.thumbnail" :alt="video.title" class="card__thumb" loading="lazy" />
+        <span v-if="durationLabel" class="card__duration">{{ durationLabel }}</span>
+      </div>
       <p class="card__title">{{ video.title }}</p>
       <p v-if="video.channel || publishedLabel" class="card__meta">
         <span v-if="video.channel">{{ video.channel }}</span>
@@ -28,15 +44,22 @@ const publishedLabel = computed(() => formatRelativeDate(props.video.published_a
       <button
         class="card__action"
         :class="{ 'card__action--active': liked }"
+        :disabled="!!pending"
         :title="liked ? 'Retirer des favoris' : 'Ajouter aux favoris'"
-        @click="$emit(liked ? 'unlike' : 'like', video)"
+        @click="act(liked ? 'unlike' : 'like')"
       >{{ liked ? '♥' : '♡' }}</button>
 
-      <button class="card__action" title="Ajouter à une playlist" @click="$emit('add-to-playlist', video)">
+      <button class="card__action" :disabled="!!pending" title="Ajouter à une playlist" @click="act('add-to-playlist')">
         +
       </button>
 
-      <button v-if="removable" class="card__action" title="Retirer de cette playlist" @click="$emit('remove', video)">
+      <button
+        v-if="removable"
+        class="card__action"
+        :disabled="!!pending"
+        title="Retirer de cette playlist"
+        @click="act('remove')"
+      >
         ✕
       </button>
     </div>
@@ -53,12 +76,27 @@ const publishedLabel = computed(() => formatRelativeDate(props.video.published_a
   color: inherit;
   text-decoration: none;
 }
+.card__thumb-wrap {
+  position: relative;
+}
 .card__thumb {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.05);
+  display: block;
+}
+.card__duration {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
 }
 .card__title {
   font-size: 0.85rem;
@@ -101,5 +139,9 @@ const publishedLabel = computed(() => formatRelativeDate(props.video.published_a
 .card__action--active {
   color: var(--danger);
   border-color: var(--danger);
+}
+.card__action:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 </style>

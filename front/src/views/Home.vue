@@ -116,6 +116,7 @@ function move(key, dir) {
       <button class="link-button" @click="settingsOpen = !settingsOpen">⚙ Personnaliser</button>
     </header>
 
+    <div v-if="settingsOpen" class="home-settings__backdrop" @click="settingsOpen = false" />
     <div v-if="settingsOpen" class="home-settings glass">
       <div v-for="key in prefs.order" :key="key" class="home-settings__row">
         <label class="home-settings__label">
@@ -209,7 +210,14 @@ function move(key, dir) {
   align-items: center;
   justify-content: space-between;
 }
+.home-settings__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+}
 .home-settings {
+  position: relative;
+  z-index: 21;
   margin: 0 1rem 1rem;
   padding: 0.75rem;
   border-radius: var(--radius-lg);
