@@ -3,6 +3,7 @@ import { onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Home, Search, Settings2 } from '@lucide/vue'
 import { useLibraryStore } from '../stores/library'
+import { usePlaylistOrder } from '../composables/usePlaylistOrder'
 
 const props = defineProps({ open: { type: Boolean, default: false } })
 const emit = defineEmits(['close'])
@@ -11,6 +12,8 @@ const library = useLibraryStore()
 onMounted(() => {
   if (!library.playlists.length) library.loadAll()
 })
+
+const { ordered } = usePlaylistOrder(() => library.playlists)
 
 const route = useRoute()
 watch(() => route.fullPath, () => emit('close'))
@@ -36,7 +39,7 @@ watch(() => route.fullPath, () => emit('close'))
         </RouterLink>
       </div>
       <RouterLink
-        v-for="p in library.playlists"
+        v-for="p in ordered"
         :key="p.id"
         :to="{ name: 'playlist', params: { id: p.id } }"
         class="sidebar__link sidebar__link--playlist"
@@ -44,7 +47,7 @@ watch(() => route.fullPath, () => emit('close'))
       >
         {{ p.title }}
       </RouterLink>
-      <p v-if="!library.playlists.length" class="sidebar__empty">Aucune playlist pour l'instant.</p>
+      <p v-if="!ordered.length" class="sidebar__empty">Aucune playlist pour l'instant.</p>
     </div>
   </aside>
 </template>

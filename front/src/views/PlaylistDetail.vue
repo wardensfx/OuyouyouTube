@@ -59,6 +59,7 @@ watch(() => props.id, load)
         :key="v.item_id"
         :video="v"
         removable
+        :show-like="false"
         @add-to-playlist="modalVideo = v"
         @remove="removeItem(v)"
       />

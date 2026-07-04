@@ -1,7 +1,8 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { ArrowLeft, Pencil, Trash2, Check, X } from '@lucide/vue'
+import { ArrowLeft, Pencil, Trash2, Check, X, ChevronUp, ChevronDown, Plus } from '@lucide/vue'
 import { useLibraryStore } from '../stores/library'
+import { usePlaylistOrder } from '../composables/usePlaylistOrder'
 
 defineOptions({ name: 'ManagePlaylists' })
 
@@ -10,9 +11,12 @@ onMounted(() => {
   if (!library.playlists.length) library.loadAll()
 })
 
+const { ordered, move } = usePlaylistOrder(() => library.playlists)
+
 const editingId = ref(null)
 const editingTitle = ref('')
 const confirmingId = ref(null)
+const newTitle = ref('')
 
 function startEdit(playlist) {
   editingId.value = playlist.id
@@ -38,6 +42,13 @@ async function confirmDelete(playlist) {
   confirmingId.value = null
   await library.deletePlaylist(playlist.id)
 }
+
+async function createPlaylist() {
+  const title = newTitle.value.trim()
+  if (!title) return
+  newTitle.value = ''
+  await library.createPlaylist(title)
+}
 </script>
 
 <template>
@@ -45,11 +56,27 @@ async function confirmDelete(playlist) {
     <RouterLink to="/" class="back"><ArrowLeft :size="16" /> Retour</RouterLink>
     <h1>Gérer les playlists</h1>
 
-    <p v-if="library.loading" class="state">Chargement…</p>
-    <p v-else-if="!library.playlists.length" class="state">Aucune playlist pour l'instant.</p>
+    <form class="new-playlist" @submit.prevent="createPlaylist">
+      <input v-model="newTitle" type="text" placeholder="Nouvelle playlist…" class="new-playlist__input" />
+      <button type="submit" class="new-playlist__submit" :disabled="!newTitle.trim()">
+        <Plus :size="16" /> Créer
+      </button>
+    </form>
 
-    <ul v-else class="list">
-      <li v-for="p in library.playlists" :key="p.id" class="row glass">
+    <p v-if="library.loading" class="state">Chargement…</p>
+    <p v-else-if="!ordered.length" class="state">Aucune playlist pour l'instant.</p>
+
+    <TransitionGroup v-else tag="ul" name="row" class="list">
+      <li v-for="(p, index) in ordered" :key="p.id" class="row glass">
+        <div class="row__order">
+          <button class="row__icon-btn" :disabled="index === 0" title="Monter" @click="move(p.id, -1)">
+            <ChevronUp :size="14" />
+          </button>
+          <button class="row__icon-btn" :disabled="index === ordered.length - 1" title="Descendre" @click="move(p.id, 1)">
+            <ChevronDown :size="14" />
+          </button>
+        </div>
+
         <img :src="p.thumbnail" class="row__thumb" :alt="p.title" />
 
         <div class="row__body">
@@ -77,7 +104,7 @@ async function confirmDelete(playlist) {
         </div>
         <span v-if="confirmingId === p.id" class="row__confirm">Cliquer encore pour confirmer</span>
       </li>
-    </ul>
+    </TransitionGroup>
   </div>
 </template>
 
@@ -99,6 +126,35 @@ async function confirmDelete(playlist) {
 h1 {
   margin-bottom: 1rem;
 }
+.new-playlist {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.new-playlist__input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.75rem;
+  color: inherit;
+}
+.new-playlist__submit {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.new-playlist__submit:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 .state {
   opacity: 0.7;
 }
@@ -109,14 +165,41 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  position: relative;
 }
 .row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
   padding: 0.5rem;
   border-radius: var(--radius-md);
   position: relative;
+}
+.row-move {
+  transition: transform 0.2s ease;
+}
+.row-enter-active,
+.row-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.row-enter-from,
+.row-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+.row-leave-active {
+  position: absolute;
+  width: 100%;
+}
+.row__order {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+.row__order .row__icon-btn {
+  width: 22px;
+  height: 22px;
 }
 .row__thumb {
   width: 96px;
@@ -176,6 +259,10 @@ h1 {
 }
 .row__icon-btn:hover {
   background: rgba(255, 255, 255, 0.12);
+}
+.row__icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 .row__icon-btn--danger {
   color: var(--danger);

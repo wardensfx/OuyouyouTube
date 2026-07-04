@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { Settings, ChevronUp, ChevronDown, Plus } from '@lucide/vue'
 import { api } from '../api/client'
 import { useLibraryStore } from '../stores/library'
+import { usePlaylistOrder } from '../composables/usePlaylistOrder'
 import VideoCard from '../components/VideoCard.vue'
 import PlaylistCard from '../components/PlaylistCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
@@ -11,6 +12,8 @@ defineOptions({ name: 'Home' })
 
 const library = useLibraryStore()
 onMounted(() => library.loadAll())
+
+const { ordered: orderedPlaylists } = usePlaylistOrder(() => library.playlists)
 
 const modalVideo = ref(null)
 const creating = ref(false)
@@ -176,7 +179,7 @@ function move(key, dir) {
           </form>
 
           <TransitionGroup tag="div" name="grid" class="grid">
-            <PlaylistCard v-for="p in library.playlists" :key="p.id" :playlist="p" />
+            <PlaylistCard v-for="p in orderedPlaylists" :key="p.id" :playlist="p" />
           </TransitionGroup>
         </template>
       </section>
