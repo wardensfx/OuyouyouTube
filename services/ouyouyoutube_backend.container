@@ -1,7 +1,12 @@
 [Container]
 ContainerName=ouyouyoutube_backend
-# Build au préalable : podman build -t ouyouyoutube_backend:latest ./server
-Image=localhost/ouyouyoutube_backend:latest
+# Image publiée sur GHCR à chaque release (.github/workflows/publish-images.yml).
+# Pull=always : recharge la dernière image publiée à chaque (re)démarrage du
+# service, plutôt que rester bloqué sur ce qui a été pull une seule fois.
+# Alternative build local : podman build -t localhost/ouyouyoutube_backend:latest ./server
+# puis remplacer Image= ci-dessous par localhost/ouyouyoutube_backend:latest.
+Image=ghcr.io/wardensfx/ouyouyoutube-server:latest
+Pull=always
 
 # Copier server/.env vers ce chemin sur l'hôte (GOOGLE_CLIENT_ID/SECRET, etc.)
 EnvironmentFile=%h/.env.d/ouyouyoutube/server.env

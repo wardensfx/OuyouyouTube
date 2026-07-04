@@ -1,7 +1,12 @@
 [Container]
 ContainerName=ouyouyoutube_frontend
-# Build au préalable : podman build -t ouyouyoutube_frontend:latest ./front
-Image=localhost/ouyouyoutube_frontend:latest
+# Image publiée sur GHCR à chaque release (.github/workflows/publish-images.yml).
+# Pull=always : recharge la dernière image publiée à chaque (re)démarrage du
+# service, plutôt que rester bloqué sur ce qui a été pull une seule fois.
+# Alternative build local : podman build -t localhost/ouyouyoutube_frontend:latest ./front
+# puis remplacer Image= ci-dessous par localhost/ouyouyoutube_frontend:latest.
+Image=ghcr.io/wardensfx/ouyouyoutube-front:latest
+Pull=always
 
 # Adresse "brute" (pas de domaine) : désactive l'auto-HTTPS de Caddy, qui ne
 # sert qu'en HTTP en interne — Traefik gère le TLS public.
