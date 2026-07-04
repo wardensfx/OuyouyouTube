@@ -34,6 +34,16 @@ export function formatDuration(iso) {
   return `${minutes}:${pad(seconds)}`
 }
 
+export function parseDurationSeconds(iso) {
+  if (!iso) return 0
+  const match = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(iso)
+  if (!match) return 0
+  const hours = Number(match[1] || 0)
+  const minutes = Number(match[2] || 0)
+  const seconds = Number(match[3] || 0)
+  return hours * 3600 + minutes * 60 + seconds
+}
+
 export function formatViewCount(count) {
   const n = Number(count)
   if (!n) return null

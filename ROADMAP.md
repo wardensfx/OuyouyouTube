@@ -57,7 +57,9 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
 
 ## Could
 
-- [ ] Tri/filtre des vidéos dans une playlist
+- [x] Tri/filtre des vidéos dans une playlist — `feat/playlist-sort-filter`.
+      Filtre texte (titre/chaîne) + tri (ordre playlist, titre, date,
+      durée), tout côté client (les items sont déjà chargés en entier).
 - [ ] Raccourcis clavier (lecteur, navigation)
 
 ## Won't (pour l'instant)
