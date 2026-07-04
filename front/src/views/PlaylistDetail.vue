@@ -3,6 +3,7 @@ import { ref, onMounted, onActivated, watch } from 'vue'
 import { ArrowLeft } from '@lucide/vue'
 import { api } from '../api/client'
 import { useLibraryStore } from '../stores/library'
+import { useProgressStore } from '../stores/progress'
 import { useToastStore } from '../stores/toast'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
@@ -12,6 +13,7 @@ defineOptions({ name: 'PlaylistDetail' })
 const props = defineProps({ id: { type: String, required: true } })
 
 const library = useLibraryStore()
+const progressStore = useProgressStore()
 const toast = useToastStore()
 const items = ref([])
 const loading = ref(false)
@@ -25,6 +27,7 @@ async function load({ silent = false } = {}) {
   }
   try {
     items.value = await api.getPlaylistItems(props.id)
+    progressStore.fetchFor(items.value.map((v) => v.video_id))
   } catch (e) {
     if (!silent) error.value = e.message
   } finally {

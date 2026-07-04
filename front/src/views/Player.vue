@@ -1,15 +1,21 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ArrowLeft } from '@lucide/vue'
 import { api } from '../api/client'
+import { useProgressStore } from '../stores/progress'
 import { formatRelativeDate, formatViewCount } from '../utils/format'
 
 const props = defineProps({ videoId: { type: String, required: true } })
+
+const progressStore = useProgressStore()
 
 const status = ref('idle') // idle | downloading | ready | error
 const errorMessage = ref(null)
 const info = ref(null)
 const progress = ref(0)
+const videoEl = ref(null)
 let pollTimer = null
+let lastReportedAt = 0
 
 async function loadInfo() {
   try {
@@ -19,13 +25,21 @@ async function loadInfo() {
   }
 }
 
+function reportFinal(videoId) {
+  const el = videoEl.value
+  if (el && el.duration) {
+    progressStore.reportProgress(videoId, el.currentTime, el.duration)
+  }
+}
+
 async function start() {
   status.value = 'downloading'
   errorMessage.value = null
   info.value = null
   progress.value = 0
+  lastReportedAt = 0
   try {
-    await Promise.all([api.prepareVideo(props.videoId), loadInfo()])
+    await Promise.all([api.prepareVideo(props.videoId), loadInfo(), progressStore.fetchFor([props.videoId])])
     poll()
   } catch (e) {
     status.value = 'error'
@@ -53,20 +67,47 @@ async function poll() {
   }
 }
 
+function onLoadedMetadata() {
+  const el = videoEl.value
+  const saved = progressStore.items[props.videoId]
+  if (
+    el &&
+    saved?.duration &&
+    !saved.watched &&
+    saved.position > 5 &&
+    saved.position < saved.duration * 0.95
+  ) {
+    el.currentTime = saved.position
+  }
+}
+
+function onTimeUpdate() {
+  const el = videoEl.value
+  if (!el || !el.duration) return
+  const now = Date.now()
+  if (now - lastReportedAt < 5000) return
+  lastReportedAt = now
+  progressStore.reportProgress(props.videoId, el.currentTime, el.duration)
+}
+
 const publishedLabel = computed(() => formatRelativeDate(info.value?.published_at))
 const viewsLabel = computed(() => formatViewCount(info.value?.view_count))
 
 onMounted(start)
-onUnmounted(() => clearTimeout(pollTimer))
-watch(() => props.videoId, () => {
+onUnmounted(() => {
   clearTimeout(pollTimer)
+  reportFinal(props.videoId)
+})
+watch(() => props.videoId, (_newId, oldId) => {
+  clearTimeout(pollTimer)
+  reportFinal(oldId)
   start()
 })
 </script>
 
 <template>
   <div class="player">
-    <RouterLink to="/" class="back">← Retour</RouterLink>
+    <RouterLink to="/" class="back"><ArrowLeft :size="16" /> Retour</RouterLink>
 
     <div v-if="status === 'downloading'" class="state">
       <div class="spinner" />
@@ -82,7 +123,17 @@ watch(() => props.videoId, () => {
     </p>
 
     <template v-else-if="status === 'ready'">
-      <video :src="api.streamUrl(videoId)" controls autoplay playsinline class="video" />
+      <video
+        ref="videoEl"
+        :src="api.streamUrl(videoId)"
+        controls
+        autoplay
+        playsinline
+        class="video"
+        @loadedmetadata="onLoadedMetadata"
+        @timeupdate="onTimeUpdate"
+        @ended="reportFinal(videoId)"
+      />
 
       <div v-if="info" class="info glass">
         <h1 class="info__title">{{ info.title }}</h1>
@@ -104,7 +155,9 @@ watch(() => props.videoId, () => {
   padding: 1rem;
 }
 .back {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   margin-bottom: 1rem;
   color: inherit;
   opacity: 0.7;
@@ -156,6 +209,9 @@ watch(() => props.videoId, () => {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 .progress {
   width: 100%;
   max-width: 320px;
@@ -172,8 +228,5 @@ watch(() => props.videoId, () => {
 .progress__label {
   font-size: 0.8rem;
   color: var(--text-dim);
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 </style>

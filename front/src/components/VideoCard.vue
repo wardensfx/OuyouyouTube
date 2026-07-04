@@ -1,7 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { Heart, Plus, X } from '@lucide/vue'
+import { Heart, Plus, X, MoreVertical, Check, Eye, EyeOff } from '@lucide/vue'
 import { useLibraryStore } from '../stores/library'
+import { useProgressStore } from '../stores/progress'
 import { formatDuration, formatRelativeDate } from '../utils/format'
 
 const props = defineProps({
@@ -12,6 +13,7 @@ const props = defineProps({
 const emit = defineEmits(['add-to-playlist', 'remove'])
 
 const library = useLibraryStore()
+const progressStore = useProgressStore()
 
 const publishedLabel = computed(() => formatRelativeDate(props.video.published_at))
 const durationLabel = computed(() => formatDuration(props.video.duration))
@@ -20,10 +22,19 @@ const durationLabel = computed(() => formatDuration(props.video.duration))
 // section Favoris.
 const liked = computed(() => library.favorites.some((v) => v.video_id === props.video.video_id))
 
+const progress = computed(() => progressStore.items[props.video.video_id])
+const progressPercent = computed(() => {
+  const p = progress.value
+  if (!p || !p.duration) return 0
+  return Math.min(100, Math.round((p.position / p.duration) * 100))
+})
+const watched = computed(() => !!progress.value?.watched)
+
 // Anti-double-clic : les actions sont async, on bloque juste brièvement le
 // bouton concerné le temps que ça se joue.
 const pending = ref(null)
 const pulsing = ref(false)
+const menuOpen = ref(false)
 
 async function toggleLike() {
   if (pending.value) return
@@ -46,6 +57,11 @@ function act(name) {
     pending.value = null
   }, 600)
 }
+
+async function toggleWatched() {
+  menuOpen.value = false
+  await progressStore.setWatched(props.video.video_id, !watched.value)
+}
 </script>
 
 <template>
@@ -54,6 +70,10 @@ function act(name) {
       <div class="card__thumb-wrap">
         <img :src="video.thumbnail" :alt="video.title" class="card__thumb" loading="lazy" />
         <span v-if="durationLabel" class="card__duration">{{ durationLabel }}</span>
+        <span v-if="watched" class="card__watched" title="Vue"><Check :size="12" /></span>
+        <div v-if="progressPercent > 0 && !watched" class="card__progress-track">
+          <div class="card__progress-fill" :style="{ width: `${progressPercent}%` }" />
+        </div>
       </div>
       <p class="card__title">{{ video.title }}</p>
       <p v-if="video.channel || publishedLabel" class="card__meta">
@@ -88,6 +108,19 @@ function act(name) {
       >
         <X :size="14" />
       </button>
+
+      <div class="card__menu">
+        <button class="card__action" title="Plus d'options" @click="menuOpen = !menuOpen">
+          <MoreVertical :size="14" />
+        </button>
+        <div v-if="menuOpen" class="card__menu-backdrop" @click="menuOpen = false" />
+        <div v-if="menuOpen" class="card__menu-panel glass glass--strong">
+          <button class="card__menu-item" @click="toggleWatched">
+            <component :is="watched ? EyeOff : Eye" :size="14" />
+            {{ watched ? 'Marquer comme non vue' : 'Marquer comme vue' }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -124,6 +157,33 @@ function act(name) {
   padding: 0.05rem 0.35rem;
   border-radius: 4px;
 }
+.card__watched {
+  position: absolute;
+  left: 0.4rem;
+  top: 0.4rem;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card__progress-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  overflow: hidden;
+}
+.card__progress-fill {
+  height: 100%;
+  background: var(--danger);
+}
 .card__title {
   font-size: 0.85rem;
   margin: 0.25rem 0 0;
@@ -140,6 +200,7 @@ function act(name) {
 }
 .card__actions {
   display: flex;
+  align-items: center;
   gap: 0.3rem;
   margin-top: 0.25rem;
 }
@@ -183,5 +244,40 @@ function act(name) {
 .card__action:disabled {
   opacity: 0.5;
   cursor: default;
+}
+.card__menu {
+  position: relative;
+  margin-left: auto;
+}
+.card__menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+}
+.card__menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.3rem);
+  border-radius: var(--radius-md);
+  padding: 0.3rem;
+  min-width: 180px;
+  z-index: 21;
+}
+.card__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: inherit;
+  text-align: left;
+  padding: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+.card__menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 </style>
