@@ -31,6 +31,7 @@ export const useLibraryStore = defineStore('library', {
       try {
         const created = await api.createPlaylist(title)
         this.playlists = [...this.playlists, created]
+        useToastStore().push(`Playlist « ${title} » créée`, 'success')
         return created
       } catch (e) {
         useToastStore().push(`Impossible de créer la playlist : ${e.message}`)
@@ -44,6 +45,7 @@ export const useLibraryStore = defineStore('library', {
       if (playlist) playlist.title = title
       try {
         await api.renamePlaylist(playlistId, title)
+        useToastStore().push('Playlist renommée', 'success')
       } catch (e) {
         if (playlist) playlist.title = prevTitle
         useToastStore().push(`Échec du renommage : ${e.message}`)
@@ -56,6 +58,7 @@ export const useLibraryStore = defineStore('library', {
       this.playlists = this.playlists.filter((p) => p.id !== playlistId)
       try {
         await api.deletePlaylist(playlistId)
+        useToastStore().push('Playlist supprimée', 'success')
       } catch (e) {
         this.playlists = prev
         useToastStore().push(`Échec de la suppression : ${e.message}`)
@@ -65,12 +68,18 @@ export const useLibraryStore = defineStore('library', {
 
     // Mise à jour optimiste (item_count) : on ne sait pas forcément dans
     // quelle playlist regarder les items, donc pas d'ajout local à une
-    // liste d'items ici — juste le compteur affiché sur PlaylistCard.
+    // liste d'items ici — juste le compteur affiché sur PlaylistCard (la
+    // page de la playlist elle-même se rafraîchit toute seule via
+    // onActivated dans PlaylistDetail.vue).
     async addToPlaylist(playlistId, video) {
       const playlist = this.playlists.find((p) => p.id === playlistId)
       if (playlist) playlist.item_count += 1
       try {
         await api.addPlaylistItem(playlistId, video.video_id)
+        useToastStore().push(
+          playlist ? `Ajoutée à « ${playlist.title} »` : 'Ajoutée à la playlist',
+          'success',
+        )
       } catch (e) {
         if (playlist) playlist.item_count -= 1
         useToastStore().push(`Échec de l'ajout à la playlist : ${e.message}`)
@@ -83,6 +92,7 @@ export const useLibraryStore = defineStore('library', {
       if (!already) this.favorites = [video, ...this.favorites]
       try {
         await api.likeVideo(video.video_id)
+        useToastStore().push('Ajoutée aux favoris', 'success')
       } catch (e) {
         if (!already) this.favorites = this.favorites.filter((v) => v.video_id !== video.video_id)
         useToastStore().push(`Échec de l'ajout aux favoris : ${e.message}`)
@@ -95,6 +105,7 @@ export const useLibraryStore = defineStore('library', {
       this.favorites = this.favorites.filter((v) => v.video_id !== videoId)
       try {
         await api.unlikeVideo(videoId)
+        useToastStore().push('Retirée des favoris', 'success')
       } catch (e) {
         this.favorites = prev
         useToastStore().push(`Échec du retrait des favoris : ${e.message}`)

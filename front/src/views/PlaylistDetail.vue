@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onActivated, watch } from 'vue'
 import { ArrowLeft } from '@lucide/vue'
 import { api } from '../api/client'
 import { useLibraryStore } from '../stores/library'
@@ -18,15 +18,17 @@ const loading = ref(false)
 const error = ref(null)
 const modalVideo = ref(null)
 
-async function load() {
-  loading.value = true
-  error.value = null
+async function load({ silent = false } = {}) {
+  if (!silent) {
+    loading.value = true
+    error.value = null
+  }
   try {
     items.value = await api.getPlaylistItems(props.id)
   } catch (e) {
-    error.value = e.message
+    if (!silent) error.value = e.message
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
 }
 
@@ -35,6 +37,7 @@ async function removeItem(video) {
   items.value = items.value.filter((v) => v.item_id !== video.item_id)
   try {
     await api.removePlaylistItem(props.id, video.item_id)
+    toast.push('Vidéo retirée de la playlist', 'success')
   } catch (e) {
     items.value = prev
     toast.push(`Échec du retrait : ${e.message}`)
@@ -45,7 +48,13 @@ onMounted(() => {
   load()
   if (!library.playlists.length) library.loadAll()
 })
-watch(() => props.id, load)
+// Cette vue reste en mémoire (<KeepAlive>, pour le scroll/l'état) : sans ce
+// hook, revenir sur une playlist déjà visitée ne réaffiche jamais un ajout
+// fait entre-temps depuis une autre page — on refetch en silence à chaque
+// réactivation, sans afficher l'état "Chargement…" pour ne pas perdre le
+// bénéfice du KeepAlive (contenu instantané).
+onActivated(() => load({ silent: true }))
+watch(() => props.id, () => load())
 </script>
 
 <template>
