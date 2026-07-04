@@ -250,7 +250,6 @@ function move(key, dir) {
             v-for="v in favoritesPreview"
             :key="v.video_id"
             :video="v"
-            :show-like="false"
             @add-to-playlist="modalVideo = v"
           />
         </TransitionGroup>

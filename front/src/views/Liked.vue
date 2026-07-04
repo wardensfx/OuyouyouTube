@@ -37,6 +37,7 @@ const modalVideo = ref(null)
         v-for="v in library.favorites"
         :key="v.video_id"
         :video="v"
+        show-like
         @add-to-playlist="modalVideo = v"
       />
     </TransitionGroup>
