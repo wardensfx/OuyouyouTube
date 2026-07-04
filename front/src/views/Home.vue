@@ -8,6 +8,7 @@ import { usePlaylistOrder } from '../composables/usePlaylistOrder'
 import VideoCard from '../components/VideoCard.vue'
 import PlaylistCard from '../components/PlaylistCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
+import PullToRefresh from '../components/PullToRefresh.vue'
 
 defineOptions({ name: 'Home' })
 
@@ -76,6 +77,15 @@ onMounted(() => {
   loadTrending()
 })
 
+async function refreshAll() {
+  await Promise.all([library.loadAll(), loadSubscriptions(), loadTrending()])
+  progressStore.fetchFor([
+    ...library.favorites.map((v) => v.video_id),
+    ...subscriptions.value.map((v) => v.video_id),
+    ...trending.value.map((v) => v.video_id),
+  ])
+}
+
 // Accueil personnalisable : ordre + visibilité des sections, persistés en
 // local (préférence d'appareil, pas besoin de synchro serveur pour ça).
 const SECTION_LABELS = {
@@ -127,7 +137,7 @@ function move(key, dir) {
 </script>
 
 <template>
-  <div class="home">
+  <PullToRefresh class="home" :refresh="refreshAll">
     <header class="home__header">
       <h1>Accueil</h1>
       <button class="link-button" @click="settingsOpen = !settingsOpen"><Settings :size="16" /> Personnaliser</button>
@@ -226,7 +236,7 @@ function move(key, dir) {
     </div>
 
     <AddToPlaylistModal v-if="modalVideo" :video="modalVideo" @close="modalVideo = null" />
-  </div>
+  </PullToRefresh>
 </template>
 
 <style scoped>

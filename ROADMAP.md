@@ -44,8 +44,10 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       Recherche (déjà correct pour Favoris/Tendances).
 - [ ] Pages chaîne (vidéos d'une chaîne, infos) + noms de chaîne cliquables
       partout (vignettes, lecteur) — `feat/channel-pages`
-- [ ] Tire-pour-rafraîchir sur mobile (pattern natif) en haut de l'accueil
-      — `feat/pull-to-refresh`
+- [x] Tire-pour-rafraîchir sur mobile (pattern natif) en haut de l'accueil
+      — `feat/pull-to-refresh`. Composant `PullToRefresh.vue` générique
+      (gestes tactiles seulement, aucun effet sur desktop/souris), recharge
+      abonnements/tendances/playlists/favoris + progression en parallèle.
 
 ## Should
 
