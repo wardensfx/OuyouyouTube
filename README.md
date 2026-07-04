@@ -52,13 +52,18 @@ container évite d'avoir à gérer un venv Python à la main. `docker-compose.ym
 
 ```powershell
 # Windows : Docker tourne dans une distro WSL (ex. Ubuntu)
-wsl -d Ubuntu -- bash -c "cd /mnt/c/chemin/vers/OuyouyouTube && docker compose up --watch"
+wsl -d Ubuntu -- bash -c "cd /mnt/c/chemin/vers/OuyouyouTube && docker compose --profile dev up --watch"
 ```
 
 ```bash
 # macOS/Linux avec Docker installé nativement
-docker compose up --watch
+docker compose --profile dev up --watch
 ```
+
+Le `--profile dev` est nécessaire : `backend` (dev) et `backend-prod` sont
+deux services distincts profilés séparément, pour que le backend "dev"
+(port 8000 publié, hot-reload) ne tourne jamais en même temps que le
+profil `prod` (qui ne doit exposer que Caddy, voir plus bas).
 
 `--watch` synchronise `server/app/` en live dans le container (les
 changements de code déclenchent le reload d'uvicorn) et rebuild l'image
@@ -114,7 +119,9 @@ Le service `frontend` de `docker-compose.yml` (profil `prod`) build la SPA
 et la sert via **Caddy** (`front/Dockerfile`, `front/Caddyfile`), qui fait
 aussi office de reverse proxy vers le backend pour tout ce qui est sous
 `/api/*`. Un seul point d'entrée, HTTPS automatique (Let's Encrypt) si
-`SITE_ADDRESS` est un vrai nom de domaine.
+`SITE_ADDRESS` est un vrai nom de domaine — `backend-prod` (aussi profil
+`prod`) ne publie aucun port sur l'hôte, seul `frontend` est joignable
+depuis l'extérieur, comme dans les quadlets Podman.
 
 ```bash
 cp .env.example .env   # définir SITE_ADDRESS

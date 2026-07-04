@@ -1,3 +1,18 @@
+x-backend-common: &backend-common
+  build: ./server
+  container_name: ouyouyoutube-backend
+  env_file: ./server/.env
+  environment:
+    REDIS_URL: redis://redis:6379/0
+    # `include_granted_scopes=true` (auth.py) fait remonter aussi les scopes
+    # accordés lors d'une connexion précédente (auth incrémentale Google) en
+    # plus de ceux demandés dans cette requête — oauthlib traite ça comme une
+    # erreur par défaut. Nécessaire aussi en prod, pas juste en dev.
+    OAUTHLIB_RELAX_TOKEN_SCOPE: "1"
+  depends_on:
+    - redis
+  restart: unless-stopped
+
 services:
   redis:
     image: redis:7
@@ -6,26 +21,21 @@ services:
       - "6379:6379"
     restart: unless-stopped
 
+  # Dev : docker compose --profile dev up --watch
+  # Port 8000 publié (Vite proxy `npm run dev` tape dessus en direct),
+  # hot-reload via --reload + develop.watch.
   backend:
-    build: ./server
-    container_name: ouyouyoutube-backend
-    env_file: ./server/.env
+    <<: *backend-common
+    profiles: ["dev"]
     environment:
       REDIS_URL: redis://redis:6379/0
       # Dev only: autorise l'échange de token OAuth en http:// (localhost sans TLS).
       # Ne jamais activer ça en prod (redirect_uri doit être en https).
       OAUTHLIB_INSECURE_TRANSPORT: "1"
-      # `include_granted_scopes=true` (auth.py) fait remonter aussi les scopes
-      # accordés lors d'une connexion précédente (auth incrémentale Google) en
-      # plus de ceux demandés dans cette requête — oauthlib traite ça comme une
-      # erreur par défaut. Nécessaire aussi en prod, pas juste en dev.
       OAUTHLIB_RELAX_TOKEN_SCOPE: "1"
     ports:
       - "8000:8000"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    depends_on:
-      - redis
-    restart: unless-stopped
     develop:
       watch:
         - action: sync
@@ -34,16 +44,23 @@ services:
         - action: rebuild
           path: ./server/requirements.txt
 
+  # Prod : docker compose --profile prod up -d --build
+  # Pas de port publié — seul le frontend (Caddy) doit être joignable
+  # depuis l'hôte, comme dans les quadlets Podman.
+  backend-prod:
+    <<: *backend-common
+    profiles: ["prod"]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
   # Frontend + reverse proxy Caddy — image de prod (SPA buildée + TLS auto).
   # Pas utilisé en dev (front tourne en direct via `npm run dev` pour le hot-reload).
-  # Lancer avec : docker compose --profile prod up -d --build
   frontend:
     build: ./front
     container_name: ouyouyoutube-frontend
     profiles: ["prod"]
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-:8080}
-      BACKEND_ADDR: backend:8000
+      BACKEND_ADDR: backend-prod:8000
     ports:
       - "8080:8080"
       - "8443:8443"
@@ -51,7 +68,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - backend
+      - backend-prod
     restart: unless-stopped
 
 volumes:
