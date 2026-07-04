@@ -4,7 +4,7 @@ ContainerName=ouyouyoutube_backend
 Image=localhost/ouyouyoutube_backend:latest
 
 # Copier server/.env vers ce chemin sur l'hôte (GOOGLE_CLIENT_ID/SECRET, etc.)
-EnvironmentFile=%h/ouyouyoutube/server.env
+EnvironmentFile=%h/.env.d/ouyouyoutube/server.env
 Environment=REDIS_URL=redis://ouyouyoutube_redis:6379/0
 # `include_granted_scopes=true` (auth.py) fait remonter les scopes accordés
 # lors d'une connexion précédente en plus de ceux demandés cette fois-ci —
