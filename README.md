@@ -160,17 +160,17 @@ qu'aucun autre service du pod n'utilise déjà les ports 6379 (redis), 8000
 À adapter si besoin :
 - `EnvironmentFile=%h/ouyouyoutube/server.env` (backend) → copier `server/.env`
   à cet endroit sur l'hôte.
-- Le domaine (`ouyouyoutube.d-yann.fr`) dans `ouyouyoutube-frontend.container`
+- Le domaine (`ouyouyoutube.d-yann.fr`) dans `ouyouyoutube_frontend.container`
   si tu changes de nom.
 
 ```bash
-podman build -t ouyouyoutube-backend:latest ./server
-podman build -t ouyouyoutube-frontend:latest ./front
+podman build -t ouyouyoutube_backend:latest ./server
+podman build -t ouyouyoutube_frontend:latest ./front
 
 mkdir -p ~/.config/containers/systemd
 cp services/*.container ~/.config/containers/systemd/
 systemctl --user daemon-reload
-systemctl --user enable --now ouyouyoutube-redis.service ouyouyoutube-backend.service ouyouyoutube-frontend.service
+systemctl --user enable --now ouyouyoutube_redis.service ouyouyoutube_backend.service ouyouyoutube_frontend.service
 ```
 
 ## Flow

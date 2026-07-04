@@ -1,5 +1,5 @@
 [Container]
-ContainerName=ouyouyoutube-redis
+ContainerName=ouyouyoutube_redis
 Image=docker.io/library/redis:7
 
 Network=server_gateway
