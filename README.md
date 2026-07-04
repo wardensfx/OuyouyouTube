@@ -361,9 +361,11 @@ docker compose --profile prod up -d --build
 
 Pre-built images for each tagged release are also published to GHCR
 (`ghcr.io/wardensfx/ouyouyoutube-server`, `ghcr.io/wardensfx/ouyouyoutube-front`,
-tagged with the release version and `latest`) if you'd rather pull than
-build locally — drop `--build` and point `docker-compose.yml`'s `image:`
-at those instead of the local `build:` context.
+tagged with the release version and `latest`) — `docker-compose.yml` already
+points both prod services' `image:` at them, so dropping `--build` pulls
+the published `latest` instead of building locally. The Podman Quadlets
+(`services/*.container`) do the same with `Pull=always`, so a service
+restart always fetches the latest published image.
 
 Caddy listens on 8080 (HTTP) / 8443 (HTTPS), published as-is on the host.
 

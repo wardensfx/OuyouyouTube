@@ -46,10 +46,13 @@ services:
           path: ./server/requirements.txt
 
   # Prod (test local) : docker compose --profile prod up -d --build
+  # (build local) ou sans --build (pull l'image publiée sur GHCR à chaque
+  # release — voir .github/workflows/publish-images.yml).
   # Pas de port publié — seul le frontend (Caddy) doit être joignable
   # depuis l'hôte, comme dans les quadlets Podman.
   backend-prod:
     <<: *backend-common
+    image: ghcr.io/wardensfx/ouyouyoutube-server:latest
     profiles: ["prod"]
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
 
@@ -58,6 +61,7 @@ services:
   # en direct via `npm run dev` pour le hot-reload).
   frontend:
     build: ./front
+    image: ghcr.io/wardensfx/ouyouyoutube-front:latest
     container_name: ouyouyoutube-frontend
     profiles: ["prod"]
     environment:
