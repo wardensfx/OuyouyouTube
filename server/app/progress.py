@@ -8,7 +8,19 @@ import time
 
 from app.cache import get_redis
 
-WATCHED_THRESHOLD = 0.9  # % de la durée à partir duquel on considère "vu"
+# Vu si la position atteint (durée - marge), la marge étant la plus petite
+# des deux : un ratio de la durée (vidéos courtes, peu de générique à
+# sauter) ou un plafond fixe en secondes (vidéos longues, le générique de
+# fin dure ~pareil quelle que soit la durée totale).
+WATCHED_MIN_RATIO = 0.9
+WATCHED_MAX_TAIL_SECONDS = 60
+
+
+def _is_watched(position: float, duration: float) -> bool:
+    if duration <= 0:
+        return False
+    tail = min(duration * (1 - WATCHED_MIN_RATIO), WATCHED_MAX_TAIL_SECONDS)
+    return position >= duration - tail
 
 
 def _key(account_id: str, video_id: str) -> str:
@@ -16,7 +28,7 @@ def _key(account_id: str, video_id: str) -> str:
 
 
 async def save_progress(account_id: str, video_id: str, position: float, duration: float):
-    watched = duration > 0 and position / duration >= WATCHED_THRESHOLD
+    watched = _is_watched(position, duration)
     await get_redis().hset(
         _key(account_id, video_id),
         mapping={
