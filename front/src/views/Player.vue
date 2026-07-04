@@ -1,8 +1,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { ArrowLeft } from '@lucide/vue'
+import { ArrowLeft, Heart, Plus } from '@lucide/vue'
 import { api } from '../api/client'
 import { useProgressStore } from '../stores/progress'
+import { useLikeButton } from '../composables/useLikeButton'
+import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 import { formatRelativeDate, formatViewCount } from '../utils/format'
 
 const props = defineProps({ videoId: { type: String, required: true } })
@@ -16,6 +18,9 @@ const progress = ref(0)
 const videoEl = ref(null)
 let pollTimer = null
 let lastReportedAt = 0
+
+const { liked, pending: likePending, pulsing, toggleLike } = useLikeButton(() => info.value)
+const addToPlaylistOpen = ref(false)
 
 async function loadInfo() {
   try {
@@ -185,6 +190,21 @@ watch(() => props.videoId, (_newId, oldId) => {
         @ended="reportFinal(videoId)"
       />
 
+      <div v-if="info" class="player-actions">
+        <button
+          class="player-actions__btn"
+          :class="{ 'player-actions__btn--active': liked, 'player-actions__btn--pulse': pulsing }"
+          :disabled="likePending"
+          @click="toggleLike"
+        >
+          <Heart :size="16" :fill="liked ? 'currentColor' : 'none'" />
+          {{ liked ? 'Aimée' : "J'aime" }}
+        </button>
+        <button class="player-actions__btn" @click="addToPlaylistOpen = true">
+          <Plus :size="16" /> Ajouter à une playlist
+        </button>
+      </div>
+
       <div v-if="info" class="info glass">
         <h1 class="info__title">{{ info.title }}</h1>
         <p class="info__meta">
@@ -200,6 +220,8 @@ watch(() => props.videoId, (_newId, oldId) => {
         <p v-if="info.description" class="info__description">{{ info.description }}</p>
       </div>
     </template>
+
+    <AddToPlaylistModal v-if="addToPlaylistOpen" :video="info" @close="addToPlaylistOpen = false" />
   </div>
 </template>
 
@@ -220,6 +242,51 @@ watch(() => props.videoId, (_newId, oldId) => {
   width: 100%;
   border-radius: var(--radius-lg);
   background: #000;
+}
+.player-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+.player-actions__btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.player-actions__btn:hover {
+  background: var(--glass-bg-strong);
+}
+.player-actions__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.player-actions__btn--active {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.player-actions__btn--pulse {
+  animation: heart-pulse 0.3s ease;
+}
+@keyframes heart-pulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 .info {
   margin-top: 1rem;
