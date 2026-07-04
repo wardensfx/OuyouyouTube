@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Path
+from pydantic import BaseModel, Field
 
 from app import youtube
 from app.session import Account, get_active_account
 
 router = APIRouter(tags=["playlists"])
+
+VIDEO_ID_PATTERN = r"^[A-Za-z0-9_-]{11}$"
 
 
 class CreatePlaylistBody(BaseModel):
@@ -12,7 +14,7 @@ class CreatePlaylistBody(BaseModel):
 
 
 class AddItemBody(BaseModel):
-    video_id: str
+    video_id: str = Field(pattern=VIDEO_ID_PATTERN)
 
 
 class RenamePlaylistBody(BaseModel):
@@ -62,12 +64,12 @@ async def favorites(account: Account = Depends(get_active_account)):
 
 
 @router.put("/favorites/{video_id}")
-async def like_video(video_id: str, account: Account = Depends(get_active_account)):
+async def like_video(video_id: str = Path(pattern=VIDEO_ID_PATTERN), account: Account = Depends(get_active_account)):
     await youtube.rate_video(account.credentials, account.id, video_id, liked=True)
     return {"ok": True}
 
 
 @router.delete("/favorites/{video_id}")
-async def unlike_video(video_id: str, account: Account = Depends(get_active_account)):
+async def unlike_video(video_id: str = Path(pattern=VIDEO_ID_PATTERN), account: Account = Depends(get_active_account)):
     await youtube.rate_video(account.credentials, account.id, video_id, liked=False)
     return {"ok": True}
