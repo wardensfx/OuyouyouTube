@@ -12,22 +12,20 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       (créer une playlist, ajouter/retirer une vidéo, like/unlike)
       — `feat/playlist-management` (mergé)
 - [x] Recherche (barre + page de résultats) — `feat/search` (mergé)
-- [ ] Page d'accueil : tendances + dernières vidéos des abonnements
-      — `feat/home-feed`
-- [ ] Refonte UI : navigation (sidebar/topbar), thème **glassmorphism dark**
-      (demande explicite : look moderne, verre dépoli/flou, sombre),
-      cartes/menus — `feat/ui-shell-redesign`. Inclut aussi la **restauration
-      d'état à la navigation retour** (scroll, recherche en cours, etc.) —
-      `scrollBehavior` de vue-router + `<KeepAlive>` sur les vues
-      concernées, pas juste un souci esthétique.
+- [x] Page d'accueil : tendances + dernières vidéos des abonnements
+      — `feat/home-feed` (mergé)
+- [ ] Refonte UI : navigation (sidebar/topbar), thème **glassmorphism dark**,
+      cartes/menus, métadonnées vidéo (chaîne/date sous les vignettes et le
+      lecteur), accueil personnalisable, restauration d'état à la navigation
+      retour (scroll + `<KeepAlive>`) — `feat/ui-shell-redesign` (PR ouverte,
+      pas encore mergée)
 
 ## Should
 
 - [ ] Reprises en cours ("continue watching" — tracking de la position de
       lecture par compte/vidéo, section dédiée sur l'accueil)
-- [ ] Accueil personnalisable (choix/ordre des sections)
-- [ ] Modale "Ajouter à une playlist" réutilisable partout (cartes vidéo,
-      résultats de recherche, lecteur)
+- [x] Modale "Ajouter à une playlist" réutilisable partout (cartes vidéo,
+      résultats de recherche, lecteur) — faite au fil des branches précédentes
 - [ ] Skeletons de chargement + états vides soignés
 - [ ] Toasts de confirmation (ajout/retrait playlist, like, etc.)
 
