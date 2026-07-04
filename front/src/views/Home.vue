@@ -142,7 +142,6 @@ function move(key, dir) {
             v-for="v in subscriptions"
             :key="v.video_id"
             :video="v"
-            @like="library.likeVideo(v)"
             @add-to-playlist="modalVideo = v"
           />
         </div>
@@ -157,7 +156,6 @@ function move(key, dir) {
             v-for="v in trending"
             :key="v.video_id"
             :video="v"
-            @like="library.likeVideo(v)"
             @add-to-playlist="modalVideo = v"
           />
         </div>
@@ -192,8 +190,7 @@ function move(key, dir) {
             v-for="v in library.favorites"
             :key="v.video_id"
             :video="v"
-            liked
-            @unlike="library.unlikeVideo(v.video_id)"
+            :show-like="false"
             @add-to-playlist="modalVideo = v"
           />
         </TransitionGroup>

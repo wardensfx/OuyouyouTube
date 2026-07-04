@@ -226,6 +226,29 @@ async def create_playlist(credentials: Credentials, account_id: str, title: str)
     return {"id": response["id"], "title": response["snippet"]["title"], "thumbnail": None, "item_count": 0}
 
 
+async def rename_playlist(credentials: Credentials, account_id: str, playlist_id: str, title: str) -> dict:
+    """playlists.update n'est pas un vrai PATCH : il faut renvoyer le
+    snippet complet, sinon les champs non fournis (description, tags…)
+    seraient réinitialisés."""
+    yt = _client(credentials)
+    current = yt.playlists().list(part="snippet", id=playlist_id).execute()
+    items = current.get("items", [])
+    if not items:
+        raise ValueError("Playlist introuvable")
+    snippet = items[0]["snippet"]
+    snippet["title"] = title
+    response = yt.playlists().update(part="snippet", body={"id": playlist_id, "snippet": snippet}).execute()
+    await get_redis().delete(f"playlists:{account_id}")
+    return {"id": response["id"], "title": response["snippet"]["title"]}
+
+
+async def delete_playlist(credentials: Credentials, account_id: str, playlist_id: str):
+    yt = _client(credentials)
+    yt.playlists().delete(id=playlist_id).execute()
+    await get_redis().delete(f"playlists:{account_id}")
+    await get_redis().delete(f"playlist_items:{playlist_id}")
+
+
 async def add_playlist_item(credentials: Credentials, account_id: str, playlist_id: str, video_id: str) -> dict:
     yt = _client(credentials)
     response = yt.playlistItems().insert(

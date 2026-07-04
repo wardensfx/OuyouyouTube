@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Home, Search } from '@lucide/vue'
+import { Home, Search, Settings2 } from '@lucide/vue'
 import { useLibraryStore } from '../stores/library'
 
 const props = defineProps({ open: { type: Boolean, default: false } })
@@ -29,7 +29,12 @@ watch(() => route.fullPath, () => emit('close'))
     </nav>
 
     <div class="sidebar__section">
-      <h3 class="sidebar__title">Playlists</h3>
+      <div class="sidebar__section-header">
+        <h3 class="sidebar__title">Playlists</h3>
+        <RouterLink to="/playlists/manage" class="sidebar__manage" title="Gérer les playlists">
+          <Settings2 :size="14" />
+        </RouterLink>
+      </div>
       <RouterLink
         v-for="p in library.playlists"
         :key="p.id"
@@ -91,12 +96,25 @@ watch(() => route.fullPath, () => emit('close'))
   flex-direction: column;
   gap: 0.15rem;
 }
+.sidebar__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0.75rem 0.5rem;
+}
 .sidebar__title {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-dim);
-  margin: 0 0.75rem 0.5rem;
+  margin: 0;
+}
+.sidebar__manage {
+  color: var(--text-dim);
+  display: flex;
+}
+.sidebar__manage:hover {
+  color: var(--text);
 }
 .sidebar__empty {
   font-size: 0.8rem;

@@ -1,21 +1,43 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { Heart, Plus, X } from '@lucide/vue'
+import { useLibraryStore } from '../stores/library'
 import { formatDuration, formatRelativeDate } from '../utils/format'
 
 const props = defineProps({
   video: { type: Object, required: true },
-  liked: { type: Boolean, default: false },
   removable: { type: Boolean, default: false },
+  showLike: { type: Boolean, default: true },
 })
-const emit = defineEmits(['like', 'unlike', 'add-to-playlist', 'remove'])
+const emit = defineEmits(['add-to-playlist', 'remove'])
+
+const library = useLibraryStore()
 
 const publishedLabel = computed(() => formatRelativeDate(props.video.published_at))
 const durationLabel = computed(() => formatDuration(props.video.duration))
+// Calculé depuis le store (pas une prop figée par le parent) : la couleur
+// du cœur reste juste partout où la vidéo apparaît, y compris hors de la
+// section Favoris.
+const liked = computed(() => library.favorites.some((v) => v.video_id === props.video.video_id))
 
-// Anti-double-clic : les actions sont async côté parent, on ne sait pas
-// quand elles finissent — on bloque juste brièvement le bouton concerné.
+// Anti-double-clic : les actions sont async, on bloque juste brièvement le
+// bouton concerné le temps que ça se joue.
 const pending = ref(null)
+const pulsing = ref(false)
+
+async function toggleLike() {
+  if (pending.value) return
+  pending.value = 'like'
+  pulsing.value = true
+  setTimeout(() => (pulsing.value = false), 300)
+  try {
+    if (liked.value) await library.unlikeVideo(props.video.video_id)
+    else await library.likeVideo(props.video)
+  } finally {
+    pending.value = null
+  }
+}
+
 function act(name) {
   if (pending.value) return
   pending.value = name
@@ -43,11 +65,12 @@ function act(name) {
 
     <div class="card__actions">
       <button
+        v-if="showLike"
         class="card__action"
-        :class="{ 'card__action--active': liked }"
+        :class="{ 'card__action--active': liked, 'card__action--pulse': pulsing }"
         :disabled="!!pending"
         :title="liked ? 'Retirer des favoris' : 'Ajouter aux favoris'"
-        @click="act(liked ? 'unlike' : 'like')"
+        @click="toggleLike"
       >
         <Heart :size="14" :fill="liked ? 'currentColor' : 'none'" />
       </button>
@@ -103,7 +126,7 @@ function act(name) {
 }
 .card__title {
   font-size: 0.85rem;
-  margin-top: 0.3rem;
+  margin: 0.25rem 0 0;
   line-height: 1.25;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -113,12 +136,12 @@ function act(name) {
 .card__meta {
   font-size: 0.75rem;
   opacity: 0.6;
-  margin-top: 0.1rem;
+  margin: 0.1rem 0 0;
 }
 .card__actions {
   display: flex;
   gap: 0.3rem;
-  margin-top: 0.3rem;
+  margin-top: 0.25rem;
 }
 .card__action {
   width: 26px;
@@ -134,6 +157,7 @@ function act(name) {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 .card__action:hover {
   background: var(--glass-bg-strong);
@@ -141,6 +165,20 @@ function act(name) {
 .card__action--active {
   color: var(--danger);
   border-color: var(--danger);
+}
+.card__action--pulse {
+  animation: heart-pulse 0.3s ease;
+}
+@keyframes heart-pulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 .card__action:disabled {
   opacity: 0.5;

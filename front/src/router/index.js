@@ -3,10 +3,12 @@ import Home from '../views/Home.vue'
 import PlaylistDetail from '../views/PlaylistDetail.vue'
 import Player from '../views/Player.vue'
 import Search from '../views/Search.vue'
+import ManagePlaylists from '../views/ManagePlaylists.vue'
 
 const routes = [
   { path: '/', name: 'home', component: Home },
   { path: '/playlist/:id', name: 'playlist', component: PlaylistDetail, props: true },
+  { path: '/playlists/manage', name: 'manage-playlists', component: ManagePlaylists },
   { path: '/watch/:videoId', name: 'player', component: Player, props: true },
   { path: '/search', name: 'search', component: Search, props: (route) => ({ q: route.query.q || '' }) },
 ]

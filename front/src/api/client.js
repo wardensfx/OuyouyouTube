@@ -26,6 +26,9 @@ function jsonBody(body) {
 export const api = {
   getPlaylists: () => request('/playlists'),
   createPlaylist: (title) => request('/playlists', { method: 'POST', ...jsonBody({ title }) }),
+  renamePlaylist: (playlistId, title) =>
+    request(`/playlists/${playlistId}`, { method: 'PATCH', ...jsonBody({ title }) }),
+  deletePlaylist: (playlistId) => request(`/playlists/${playlistId}`, { method: 'DELETE' }),
   getPlaylistItems: (playlistId) => request(`/playlists/${playlistId}/items`),
   addPlaylistItem: (playlistId, videoId) =>
     request(`/playlists/${playlistId}/items`, { method: 'POST', ...jsonBody({ video_id: videoId }) }),

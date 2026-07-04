@@ -38,6 +38,31 @@ export const useLibraryStore = defineStore('library', {
       }
     },
 
+    async renamePlaylist(playlistId, title) {
+      const playlist = this.playlists.find((p) => p.id === playlistId)
+      const prevTitle = playlist?.title
+      if (playlist) playlist.title = title
+      try {
+        await api.renamePlaylist(playlistId, title)
+      } catch (e) {
+        if (playlist) playlist.title = prevTitle
+        useToastStore().push(`Échec du renommage : ${e.message}`)
+        throw e
+      }
+    },
+
+    async deletePlaylist(playlistId) {
+      const prev = this.playlists
+      this.playlists = this.playlists.filter((p) => p.id !== playlistId)
+      try {
+        await api.deletePlaylist(playlistId)
+      } catch (e) {
+        this.playlists = prev
+        useToastStore().push(`Échec de la suppression : ${e.message}`)
+        throw e
+      }
+    },
+
     // Mise à jour optimiste (item_count) : on ne sait pas forcément dans
     // quelle playlist regarder les items, donc pas d'ajout local à une
     // liste d'items ici — juste le compteur affiché sur PlaylistCard.

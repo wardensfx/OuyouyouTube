@@ -2,7 +2,6 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api/client'
-import { useLibraryStore } from '../stores/library'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 
@@ -10,7 +9,6 @@ defineOptions({ name: 'Search' })
 
 const props = defineProps({ q: { type: String, default: '' } })
 const router = useRouter()
-const library = useLibraryStore()
 
 const term = ref(props.q)
 const results = ref([])
@@ -63,7 +61,6 @@ watch(
         v-for="v in results"
         :key="v.video_id"
         :video="v"
-        @like="library.likeVideo(v)"
         @add-to-playlist="modalVideo = v"
       />
     </div>
