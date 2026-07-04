@@ -1,34 +1,92 @@
 <script setup>
-defineProps({
+import { computed, ref } from 'vue'
+import { Heart, Plus, X } from '@lucide/vue'
+import { useLibraryStore } from '../stores/library'
+import { formatDuration, formatRelativeDate } from '../utils/format'
+
+const props = defineProps({
   video: { type: Object, required: true },
-  liked: { type: Boolean, default: false },
   removable: { type: Boolean, default: false },
+  showLike: { type: Boolean, default: true },
 })
-defineEmits(['like', 'unlike', 'add-to-playlist', 'remove'])
+const emit = defineEmits(['add-to-playlist', 'remove'])
+
+const library = useLibraryStore()
+
+const publishedLabel = computed(() => formatRelativeDate(props.video.published_at))
+const durationLabel = computed(() => formatDuration(props.video.duration))
+// Calculé depuis le store (pas une prop figée par le parent) : la couleur
+// du cœur reste juste partout où la vidéo apparaît, y compris hors de la
+// section Favoris.
+const liked = computed(() => library.favorites.some((v) => v.video_id === props.video.video_id))
+
+// Anti-double-clic : les actions sont async, on bloque juste brièvement le
+// bouton concerné le temps que ça se joue.
+const pending = ref(null)
+const pulsing = ref(false)
+
+async function toggleLike() {
+  if (pending.value) return
+  pending.value = 'like'
+  pulsing.value = true
+  setTimeout(() => (pulsing.value = false), 300)
+  try {
+    if (liked.value) await library.unlikeVideo(props.video.video_id)
+    else await library.likeVideo(props.video)
+  } finally {
+    pending.value = null
+  }
+}
+
+function act(name) {
+  if (pending.value) return
+  pending.value = name
+  emit(name, props.video)
+  setTimeout(() => {
+    pending.value = null
+  }, 600)
+}
 </script>
 
 <template>
   <div class="card">
     <RouterLink :to="{ name: 'player', params: { videoId: video.video_id } }" class="card__link">
-      <img :src="video.thumbnail" :alt="video.title" class="card__thumb" loading="lazy" />
+      <div class="card__thumb-wrap">
+        <img :src="video.thumbnail" :alt="video.title" class="card__thumb" loading="lazy" />
+        <span v-if="durationLabel" class="card__duration">{{ durationLabel }}</span>
+      </div>
       <p class="card__title">{{ video.title }}</p>
-      <p v-if="video.channel" class="card__meta">{{ video.channel }}</p>
+      <p v-if="video.channel || publishedLabel" class="card__meta">
+        <span v-if="video.channel">{{ video.channel }}</span>
+        <span v-if="video.channel && publishedLabel"> · </span>
+        <span v-if="publishedLabel">{{ publishedLabel }}</span>
+      </p>
     </RouterLink>
 
     <div class="card__actions">
       <button
+        v-if="showLike"
         class="card__action"
-        :class="{ 'card__action--active': liked }"
+        :class="{ 'card__action--active': liked, 'card__action--pulse': pulsing }"
+        :disabled="!!pending"
         :title="liked ? 'Retirer des favoris' : 'Ajouter aux favoris'"
-        @click="$emit(liked ? 'unlike' : 'like', video)"
-      >{{ liked ? '♥' : '♡' }}</button>
-
-      <button class="card__action" title="Ajouter à une playlist" @click="$emit('add-to-playlist', video)">
-        +
+        @click="toggleLike"
+      >
+        <Heart :size="14" :fill="liked ? 'currentColor' : 'none'" />
       </button>
 
-      <button v-if="removable" class="card__action" title="Retirer de cette playlist" @click="$emit('remove', video)">
-        ✕
+      <button class="card__action" :disabled="!!pending" title="Ajouter à une playlist" @click="act('add-to-playlist')">
+        <Plus :size="14" />
+      </button>
+
+      <button
+        v-if="removable"
+        class="card__action"
+        :disabled="!!pending"
+        title="Retirer de cette playlist"
+        @click="act('remove')"
+      >
+        <X :size="14" />
       </button>
     </div>
   </div>
@@ -44,16 +102,31 @@ defineEmits(['like', 'unlike', 'add-to-playlist', 'remove'])
   color: inherit;
   text-decoration: none;
 }
+.card__thumb-wrap {
+  position: relative;
+}
 .card__thumb {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  border-radius: 10px;
-  background: #222;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  display: block;
+}
+.card__duration {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
 }
 .card__title {
   font-size: 0.85rem;
-  margin-top: 0.4rem;
+  margin: 0.25rem 0 0;
   line-height: 1.25;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -63,32 +136,52 @@ defineEmits(['like', 'unlike', 'add-to-playlist', 'remove'])
 .card__meta {
   font-size: 0.75rem;
   opacity: 0.6;
-  margin-top: 0.15rem;
+  margin: 0.1rem 0 0;
 }
 .card__actions {
   display: flex;
-  gap: 0.4rem;
-  margin-top: 0.4rem;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
 }
 .card__action {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  border: 1px solid #2a2a2a;
-  background: #181818;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   color: inherit;
   cursor: pointer;
-  font-size: 0.85rem;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 .card__action:hover {
-  background: #232323;
+  background: var(--glass-bg-strong);
 }
 .card__action--active {
-  color: #ff6b6b;
-  border-color: #ff6b6b;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.card__action--pulse {
+  animation: heart-pulse 0.3s ease;
+}
+@keyframes heart-pulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.card__action:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 </style>

@@ -1,11 +1,11 @@
 [Container]
-ContainerName=ouyouyoutube-backend
-# Build au préalable : podman build -t ouyouyoutube-backend:latest ./server
-Image=localhost/ouyouyoutube-backend:latest
+ContainerName=ouyouyoutube_backend
+# Build au préalable : podman build -t ouyouyoutube_backend:latest ./server
+Image=localhost/ouyouyoutube_backend:latest
 
 # Copier server/.env vers ce chemin sur l'hôte (GOOGLE_CLIENT_ID/SECRET, etc.)
 EnvironmentFile=%h/ouyouyoutube/server.env
-Environment=REDIS_URL=redis://ouyouyoutube-redis:6379/0
+Environment=REDIS_URL=redis://ouyouyoutube_redis:6379/0
 # `include_granted_scopes=true` (auth.py) fait remonter les scopes accordés
 # lors d'une connexion précédente en plus de ceux demandés cette fois-ci —
 # oauthlib traite ça comme une erreur par défaut.
@@ -25,8 +25,8 @@ Restart=always
 RestartSec=10
 
 [Unit]
-After=network.target ouyouyoutube-redis.service
-Requires=ouyouyoutube-redis.service
+After=network.target ouyouyoutube_redis.service
+Requires=ouyouyoutube_redis.service
 
 [Install]
 WantedBy=default.target

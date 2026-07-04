@@ -39,8 +39,10 @@ npm install
 npm run dev
 ```
 
-Ouvre http://localhost:5173 — le proxy Vite redirige `/auth`, `/playlists`,
-`/favorites`, `/video/*` vers le backend sur le port 8000.
+Ouvre http://localhost:5173 — le proxy Vite redirige tout ce qui est sous
+`/api/*` vers le backend sur le port 8000 (toutes les routes API vivent
+sous ce préfixe, justement pour ne jamais entrer en collision avec les
+routes du front, ex. `/search` ou `/playlists/manage`).
 
 ### Backend + Redis en container (recommandé, notamment sous Windows)
 
@@ -50,13 +52,18 @@ container évite d'avoir à gérer un venv Python à la main. `docker-compose.ym
 
 ```powershell
 # Windows : Docker tourne dans une distro WSL (ex. Ubuntu)
-wsl -d Ubuntu -- bash -c "cd /mnt/c/chemin/vers/OuyouyouTube && docker compose up --watch"
+wsl -d Ubuntu -- bash -c "cd /mnt/c/chemin/vers/OuyouyouTube && docker compose --profile dev up --watch"
 ```
 
 ```bash
 # macOS/Linux avec Docker installé nativement
-docker compose up --watch
+docker compose --profile dev up --watch
 ```
+
+Le `--profile dev` est nécessaire : `backend` (dev) et `backend-prod` sont
+deux services distincts profilés séparément, pour que le backend "dev"
+(port 8000 publié, hot-reload) ne tourne jamais en même temps que le
+profil `prod` (qui ne doit exposer que Caddy, voir plus bas).
 
 `--watch` synchronise `server/app/` en live dans le container (les
 changements de code déclenchent le reload d'uvicorn) et rebuild l'image
@@ -110,9 +117,11 @@ est nécessaire aussi en prod, pas juste en dev.
 
 Le service `frontend` de `docker-compose.yml` (profil `prod`) build la SPA
 et la sert via **Caddy** (`front/Dockerfile`, `front/Caddyfile`), qui fait
-aussi office de reverse proxy vers le backend pour `/auth`, `/playlists`,
-`/favorites`, `/video/*`. Un seul point d'entrée, HTTPS automatique (Let's
-Encrypt) si `SITE_ADDRESS` est un vrai nom de domaine.
+aussi office de reverse proxy vers le backend pour tout ce qui est sous
+`/api/*`. Un seul point d'entrée, HTTPS automatique (Let's Encrypt) si
+`SITE_ADDRESS` est un vrai nom de domaine — `backend-prod` (aussi profil
+`prod`) ne publie aucun port sur l'hôte, seul `frontend` est joignable
+depuis l'extérieur, comme dans les quadlets Podman.
 
 ```bash
 cp .env.example .env   # définir SITE_ADDRESS
@@ -151,26 +160,26 @@ qu'aucun autre service du pod n'utilise déjà les ports 6379 (redis), 8000
 À adapter si besoin :
 - `EnvironmentFile=%h/ouyouyoutube/server.env` (backend) → copier `server/.env`
   à cet endroit sur l'hôte.
-- Le domaine (`ouyouyoutube.d-yann.fr`) dans `ouyouyoutube-frontend.container`
+- Le domaine (`ouyouyoutube.d-yann.fr`) dans `ouyouyoutube_frontend.container`
   si tu changes de nom.
 
 ```bash
-podman build -t ouyouyoutube-backend:latest ./server
-podman build -t ouyouyoutube-frontend:latest ./front
+podman build -t ouyouyoutube_backend:latest ./server
+podman build -t ouyouyoutube_frontend:latest ./front
 
 mkdir -p ~/.config/containers/systemd
 cp services/*.container ~/.config/containers/systemd/
 systemctl --user daemon-reload
-systemctl --user enable --now ouyouyoutube-redis.service ouyouyoutube-backend.service ouyouyoutube-frontend.service
+systemctl --user enable --now ouyouyoutube_redis.service ouyouyoutube_backend.service ouyouyoutube_frontend.service
 ```
 
 ## Flow
 
-1. `/auth/login` → OAuth Google → cookie de session (le token reste en Redis, jamais côté client)
-2. `GET /playlists`, `/favorites` → wrap YouTube Data API, cache Redis 15 min
-3. `POST /video/{id}/prepare` → lance yt-dlp en tâche de fond
-4. `GET /video/{id}/status` → poll côté front jusqu'à `ready`
-5. `GET /video/{id}/stream` → `FileResponse` (Range natif, seek OK)
+1. `/api/auth/login` → OAuth Google → cookie de session (le token reste en Redis, jamais côté client)
+2. `GET /api/playlists`, `/api/favorites` → wrap YouTube Data API, cache Redis 15 min
+3. `POST /api/video/{id}/prepare` → lance yt-dlp en tâche de fond
+4. `GET /api/video/{id}/status` → poll côté front jusqu'à `ready`
+5. `GET /api/video/{id}/stream` → `FileResponse` (Range natif, seek OK)
 6. Job périodique (`app/cleanup.py`) → supprime les fichiers > `VIDEO_TTL_SECONDS`
 
 ## Notes

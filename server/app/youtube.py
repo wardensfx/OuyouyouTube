@@ -77,8 +77,12 @@ async def get_playlist_items(credentials: Credentials, playlist_id: str) -> list
                 "item_id": item["id"],
                 "video_id": item["contentDetails"]["videoId"],
                 "title": item["snippet"]["title"],
+                # videoOwnerChannelTitle = chaîne de la vidéo ; channelTitle
+                # (snippet) serait la chaîne propriétaire de la PLAYLIST.
+                "channel": item["snippet"].get("videoOwnerChannelTitle"),
                 "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
                 "position": item["snippet"]["position"],
+                "published_at": item["contentDetails"].get("videoPublishedAt"),
             })
         request = yt.playlistItems().list_next(request, response)
 
@@ -93,6 +97,7 @@ def _video_summary(item: dict) -> dict:
         "channel": item["snippet"]["channelTitle"],
         "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
         "duration": item["contentDetails"]["duration"],  # format ISO 8601
+        "published_at": item["snippet"]["publishedAt"],
     }
 
 
@@ -112,11 +117,35 @@ async def search_videos(credentials: Credentials, query: str) -> list[dict]:
             "title": item["snippet"]["title"],
             "channel": item["snippet"]["channelTitle"],
             "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
+            "published_at": item["snippet"]["publishedAt"],
         }
         for item in response.get("items", [])
     ]
     await set_json(cache_key, results, ttl=settings.metadata_ttl_seconds)
     return results
+
+
+async def get_video_details(credentials: Credentials, video_id: str) -> dict:
+    """Métadonnées d'une seule vidéo, pour l'affichage sous le lecteur."""
+    cache_key = f"video_details:{video_id}"
+    cached = await get_json(cache_key)
+    if cached is not None:
+        return cached
+
+    yt = _client(credentials)
+    response = yt.videos().list(part="snippet,contentDetails,statistics", id=video_id).execute()
+    items = response.get("items", [])
+    if not items:
+        return None
+
+    item = items[0]
+    details = {
+        **_video_summary(item),
+        "description": item["snippet"].get("description", ""),
+        "view_count": item.get("statistics", {}).get("viewCount"),
+    }
+    await set_json(cache_key, details, ttl=settings.metadata_ttl_seconds)
+    return details
 
 
 # Bornes pour l'agrégation "abonnements" : un appel activities.list par
@@ -195,6 +224,29 @@ async def create_playlist(credentials: Credentials, account_id: str, title: str)
     response = yt.playlists().insert(part="snippet", body={"snippet": {"title": title}}).execute()
     await get_redis().delete(f"playlists:{account_id}")
     return {"id": response["id"], "title": response["snippet"]["title"], "thumbnail": None, "item_count": 0}
+
+
+async def rename_playlist(credentials: Credentials, account_id: str, playlist_id: str, title: str) -> dict:
+    """playlists.update n'est pas un vrai PATCH : il faut renvoyer le
+    snippet complet, sinon les champs non fournis (description, tags…)
+    seraient réinitialisés."""
+    yt = _client(credentials)
+    current = yt.playlists().list(part="snippet", id=playlist_id).execute()
+    items = current.get("items", [])
+    if not items:
+        raise ValueError("Playlist introuvable")
+    snippet = items[0]["snippet"]
+    snippet["title"] = title
+    response = yt.playlists().update(part="snippet", body={"id": playlist_id, "snippet": snippet}).execute()
+    await get_redis().delete(f"playlists:{account_id}")
+    return {"id": response["id"], "title": response["snippet"]["title"]}
+
+
+async def delete_playlist(credentials: Credentials, account_id: str, playlist_id: str):
+    yt = _client(credentials)
+    yt.playlists().delete(id=playlist_id).execute()
+    await get_redis().delete(f"playlists:{account_id}")
+    await get_redis().delete(f"playlist_items:{playlist_id}")
 
 
 async def add_playlist_item(credentials: Credentials, account_id: str, playlist_id: str, video_id: str) -> dict:

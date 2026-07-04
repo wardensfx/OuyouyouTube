@@ -10,13 +10,18 @@ const emit = defineEmits(['close'])
 const library = useLibraryStore()
 const newTitle = ref('')
 const busy = ref(false)
+const visible = ref(true)
+
+function close() {
+  visible.value = false
+}
 
 async function addTo(playlistId) {
   if (!props.video || busy.value) return
   busy.value = true
   try {
-    await library.addToPlaylist(playlistId, props.video.video_id)
-    emit('close')
+    await library.addToPlaylist(playlistId, props.video)
+    close()
   } finally {
     busy.value = false
   }
@@ -26,11 +31,10 @@ async function createAndAdd() {
   if (!newTitle.value.trim() || !props.video || busy.value) return
   busy.value = true
   try {
-    await library.createPlaylist(newTitle.value.trim())
-    const created = library.playlists.find((p) => p.title === newTitle.value.trim())
-    if (created) await library.addToPlaylist(created.id, props.video.video_id)
+    const created = await library.createPlaylist(newTitle.value.trim())
+    await library.addToPlaylist(created.id, props.video)
     newTitle.value = ''
-    emit('close')
+    close()
   } finally {
     busy.value = false
   }
@@ -38,23 +42,25 @@ async function createAndAdd() {
 </script>
 
 <template>
-  <div class="modal__backdrop" @click="$emit('close')">
-    <div class="modal" @click.stop>
-      <h2 class="modal__title">Ajouter à une playlist</h2>
+  <Transition name="modal" @after-leave="emit('close')">
+    <div v-if="visible" class="modal__backdrop" @click="close">
+      <div class="modal glass glass--strong" @click.stop>
+        <h2 class="modal__title">Ajouter à une playlist</h2>
 
-      <ul class="modal__list">
-        <li v-for="p in library.playlists" :key="p.id">
-          <button class="modal__row" :disabled="busy" @click="addTo(p.id)">{{ p.title }}</button>
-        </li>
-        <li v-if="!library.playlists.length" class="modal__empty">Aucune playlist pour l'instant.</li>
-      </ul>
+        <ul class="modal__list">
+          <li v-for="p in library.playlists" :key="p.id">
+            <button class="modal__row" :disabled="busy" @click="addTo(p.id)">{{ p.title }}</button>
+          </li>
+          <li v-if="!library.playlists.length" class="modal__empty">Aucune playlist pour l'instant.</li>
+        </ul>
 
-      <form class="modal__new" @submit.prevent="createAndAdd">
-        <input v-model="newTitle" type="text" placeholder="Nouvelle playlist…" class="modal__input" />
-        <button type="submit" class="modal__submit" :disabled="!newTitle.trim() || busy">Créer</button>
-      </form>
+        <form class="modal__new" @submit.prevent="createAndAdd">
+          <input v-model="newTitle" type="text" placeholder="Nouvelle playlist…" class="modal__input" />
+          <button type="submit" class="modal__submit" :disabled="!newTitle.trim() || busy">Créer</button>
+        </form>
+      </div>
     </div>
-  </div>
+  </Transition>
 </template>
 
 <style scoped>
@@ -68,9 +74,7 @@ async function createAndAdd() {
   z-index: 30;
 }
 .modal {
-  background: #181818;
-  border: 1px solid #2a2a2a;
-  border-radius: 16px 16px 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   width: 100%;
   max-width: 420px;
   padding: 1rem;
@@ -102,7 +106,7 @@ async function createAndAdd() {
   font-size: 0.9rem;
 }
 .modal__row:hover {
-  background: #232323;
+  background: rgba(255, 255, 255, 0.1);
 }
 .modal__empty {
   opacity: 0.6;
@@ -114,21 +118,21 @@ async function createAndAdd() {
   gap: 0.5rem;
   margin-top: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid #2a2a2a;
+  border-top: 1px solid var(--glass-border);
 }
 .modal__input {
   flex: 1;
-  background: #0f0f0f;
-  border: 1px solid #2a2a2a;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--glass-border);
   border-radius: 8px;
   padding: 0.5rem;
   color: inherit;
 }
 .modal__submit {
-  background: #f1f1f1;
-  color: #0f0f0f;
+  background: var(--accent);
+  color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0.5rem 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -136,5 +140,22 @@ async function createAndAdd() {
 .modal__submit:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+.modal-enter-active .modal,
+.modal-leave-active .modal {
+  transition: transform 0.2s ease;
+}
+.modal-enter-from .modal,
+.modal-leave-to .modal {
+  transform: translateY(100%);
 }
 </style>

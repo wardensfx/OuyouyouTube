@@ -1,19 +1,36 @@
 <script setup>
+import { ref } from 'vue'
 import AccountSwitcher from './components/AccountSwitcher.vue'
+import Sidebar from './components/Sidebar.vue'
+import BottomNav from './components/BottomNav.vue'
+import ScrollToTop from './components/ScrollToTop.vue'
+import ToastContainer from './components/ToastContainer.vue'
+
+const sidebarOpen = ref(false)
 </script>
 
 <template>
   <div class="app">
-    <header class="topbar">
-      <RouterLink to="/" class="brand">OuyouyouTube</RouterLink>
-      <div class="topbar__actions">
-        <RouterLink to="/search" class="search-link" title="Rechercher">🔍</RouterLink>
+    <Sidebar :open="sidebarOpen" @close="sidebarOpen = false" />
+
+    <div class="app__main">
+      <header class="topbar glass">
+        <RouterLink to="/" class="brand">OuyouyouTube</RouterLink>
         <AccountSwitcher />
-      </div>
-    </header>
-    <main class="app__content">
-      <RouterView />
-    </main>
+      </header>
+
+      <main class="app__content">
+        <RouterView v-slot="{ Component }">
+          <KeepAlive :include="['Home', 'Search', 'PlaylistDetail', 'Liked']">
+            <component :is="Component" />
+          </KeepAlive>
+        </RouterView>
+      </main>
+    </div>
+
+    <BottomNav @open-menu="sidebarOpen = true" />
+    <ScrollToTop />
+    <ToastContainer />
   </div>
 </template>
 
@@ -21,18 +38,25 @@ import AccountSwitcher from './components/AccountSwitcher.vue'
 .app {
   min-height: 100vh;
   display: flex;
+}
+.app__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
 }
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #222;
+  padding: 0.75rem 1.25rem;
   position: sticky;
   top: 0;
-  background: #0f0f0f;
   z-index: 10;
+  border-radius: 0;
+  border-top: none;
+  border-left: none;
+  border-right: none;
 }
 .brand {
   font-weight: 700;
@@ -41,26 +65,14 @@ import AccountSwitcher from './components/AccountSwitcher.vue'
   text-decoration: none;
   letter-spacing: -0.02em;
 }
-.topbar__actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.search-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  color: inherit;
-  text-decoration: none;
-  font-size: 1rem;
-}
-.search-link:hover {
-  background: #1f1f1f;
-}
 .app__content {
   flex: 1;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (max-width: 768px) {
+  .app__content {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
 }
 </style>

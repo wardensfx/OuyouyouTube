@@ -1,59 +1,78 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onActivated, watch } from 'vue'
+import { ArrowLeft } from '@lucide/vue'
 import { api } from '../api/client'
 import { useLibraryStore } from '../stores/library'
+import { useToastStore } from '../stores/toast'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
+
+defineOptions({ name: 'PlaylistDetail' })
 
 const props = defineProps({ id: { type: String, required: true } })
 
 const library = useLibraryStore()
+const toast = useToastStore()
 const items = ref([])
 const loading = ref(false)
 const error = ref(null)
 const modalVideo = ref(null)
 
-async function load() {
-  loading.value = true
-  error.value = null
+async function load({ silent = false } = {}) {
+  if (!silent) {
+    loading.value = true
+    error.value = null
+  }
   try {
     items.value = await api.getPlaylistItems(props.id)
   } catch (e) {
-    error.value = e.message
+    if (!silent) error.value = e.message
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
 }
 
 async function removeItem(video) {
-  await api.removePlaylistItem(props.id, video.item_id)
-  await load()
+  const prev = items.value
+  items.value = items.value.filter((v) => v.item_id !== video.item_id)
+  try {
+    await api.removePlaylistItem(props.id, video.item_id)
+    toast.push('Vidéo retirée de la playlist', 'success')
+  } catch (e) {
+    items.value = prev
+    toast.push(`Échec du retrait : ${e.message}`)
+  }
 }
 
 onMounted(() => {
   load()
   if (!library.playlists.length) library.loadAll()
 })
-watch(() => props.id, load)
+// Cette vue reste en mémoire (<KeepAlive>, pour le scroll/l'état) : sans ce
+// hook, revenir sur une playlist déjà visitée ne réaffiche jamais un ajout
+// fait entre-temps depuis une autre page — on refetch en silence à chaque
+// réactivation, sans afficher l'état "Chargement…" pour ne pas perdre le
+// bénéfice du KeepAlive (contenu instantané).
+onActivated(() => load({ silent: true }))
+watch(() => props.id, () => load())
 </script>
 
 <template>
   <div class="playlist">
-    <RouterLink to="/" class="back">← Retour</RouterLink>
+    <RouterLink to="/" class="back"><ArrowLeft :size="16" /> Retour</RouterLink>
     <p v-if="loading" class="state">Chargement…</p>
     <p v-else-if="error" class="state state--error">{{ error }}</p>
-    <div v-else class="grid">
+    <TransitionGroup v-else tag="div" name="grid" class="grid">
       <VideoCard
         v-for="v in items"
         :key="v.item_id"
         :video="v"
         removable
-        @like="library.likeVideo(v.video_id)"
-        @unlike="library.unlikeVideo(v.video_id)"
+        :show-like="false"
         @add-to-playlist="modalVideo = v"
         @remove="removeItem(v)"
       />
-    </div>
+    </TransitionGroup>
 
     <AddToPlaylistModal v-if="modalVideo" :video="modalVideo" @close="modalVideo = null" />
   </div>
@@ -64,7 +83,9 @@ watch(() => props.id, load)
   padding: 1rem;
 }
 .back {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   margin-bottom: 1rem;
   color: inherit;
   opacity: 0.7;
@@ -74,11 +95,27 @@ watch(() => props.id, load)
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
+  position: relative;
+}
+.grid-enter-active,
+.grid-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.grid-enter-from,
+.grid-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+.grid-leave-active {
+  position: absolute;
+}
+.grid-move {
+  transition: transform 0.25s ease;
 }
 .state {
   opacity: 0.7;
 }
 .state--error {
-  color: #ff6b6b;
+  color: var(--danger);
 }
 </style>

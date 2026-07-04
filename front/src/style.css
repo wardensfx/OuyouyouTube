@@ -1,6 +1,31 @@
 :root {
   color-scheme: dark;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Glassmorphism dark — design tokens */
+  --bg-base: #0b0b10;
+  --bg-accent-1: #2a1f4d;
+  --bg-accent-2: #0f2f3f;
+  --text: #f1f1f4;
+  --text-dim: rgba(241, 241, 244, 0.65);
+  --accent: #8b7cf6;
+  --accent-strong: #a78bfa;
+  --danger: #ff6b6b;
+
+  /* Teintés sombres (pas blancs) : un lavis blanc à 6% sur un fond déjà
+     sombre est quasi invisible sans blur (et le blur seul ne suffit pas à
+     garantir la lisibilité selon le support navigateur) — on veut un verre
+     qui se voit même sans backdrop-filter. */
+  --glass-bg: rgba(24, 20, 36, 0.65);
+  --glass-bg-strong: rgba(24, 20, 36, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-blur: blur(20px) saturate(160%);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
 }
 
 * {
@@ -9,11 +34,32 @@
 
 body {
   margin: 0;
-  background: #0f0f0f;
-  color: #f1f1f1;
+  color: var(--text);
+  min-height: 100vh;
+  background: var(--bg-base);
+  background-image:
+    radial-gradient(ellipse 800px 500px at 15% -10%, var(--bg-accent-1) 0%, transparent 60%),
+    radial-gradient(ellipse 700px 600px at 110% 20%, var(--bg-accent-2) 0%, transparent 55%),
+    radial-gradient(ellipse 900px 700px at 50% 120%, var(--bg-accent-1) 0%, transparent 60%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
 }
 
 h1 {
   font-size: 1.4rem;
   margin: 0;
+}
+
+/* Surface "verre dépoli" réutilisée par la topbar, la sidebar, les cartes
+   et les modales — un seul endroit à ajuster pour tout le look glass. */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass--strong {
+  background: var(--glass-bg-strong);
 }

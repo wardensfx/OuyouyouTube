@@ -6,10 +6,20 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
 from google.oauth2.credentials import Credentials
 
+from app import youtube
 from app.downloader import prepare_video, get_status, STATUS_READY, STATUS_ERROR
-from app.session import get_credentials
+from app.session import Account, get_active_account, get_credentials
 
 router = APIRouter(prefix="/video", tags=["video"])
+
+
+@router.get("/{video_id}/info")
+async def info(video_id: str, account: Account = Depends(get_active_account)):
+    """Métadonnées (titre, chaîne, date, description…) affichées sous le lecteur."""
+    details = await youtube.get_video_details(account.credentials, video_id)
+    if details is None:
+        raise HTTPException(status_code=404, detail="Vidéo introuvable.")
+    return details
 
 
 @router.post("/{video_id}/prepare")

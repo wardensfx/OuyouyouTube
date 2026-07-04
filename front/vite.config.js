@@ -24,15 +24,15 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // On ne cache jamais les vidéos ni les appels API dynamiques (auth/cookies)
-        navigateFallbackDenylist: [/^\/api/, /^\/auth/, /^\/video/],
+        // On ne cache jamais les appels API dynamiques (auth/cookies/vidéo)
+        navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
           {
             urlPattern: ({ url }) =>
-              url.pathname.startsWith('/playlists') ||
-              url.pathname.startsWith('/favorites') ||
-              url.pathname.startsWith('/search') ||
-              url.pathname.startsWith('/home'),
+              url.pathname.startsWith('/api/playlists') ||
+              url.pathname.startsWith('/api/favorites') ||
+              url.pathname.startsWith('/api/search') ||
+              url.pathname.startsWith('/api/home'),
             handler: 'NetworkFirst',
             options: { cacheName: 'metadata-cache', expiration: { maxAgeSeconds: 60 * 10 } },
           },
@@ -43,12 +43,7 @@ export default defineConfig({
   server: {
     host: true,
     proxy: {
-      '/auth': 'http://127.0.0.1:8000',
-      '/home': 'http://127.0.0.1:8000',
-      '/playlists': 'http://127.0.0.1:8000',
-      '/favorites': 'http://127.0.0.1:8000',
-      '/search': 'http://127.0.0.1:8000',
-      '/video': 'http://127.0.0.1:8000',
+      '/api': 'http://127.0.0.1:8000',
     },
   },
 })

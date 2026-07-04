@@ -15,6 +15,10 @@ class AddItemBody(BaseModel):
     video_id: str
 
 
+class RenamePlaylistBody(BaseModel):
+    title: str
+
+
 @router.get("/playlists")
 async def list_playlists(account: Account = Depends(get_active_account)):
     return await youtube.get_my_playlists(account.credentials, account.id)
@@ -23,6 +27,17 @@ async def list_playlists(account: Account = Depends(get_active_account)):
 @router.post("/playlists")
 async def create_playlist(body: CreatePlaylistBody, account: Account = Depends(get_active_account)):
     return await youtube.create_playlist(account.credentials, account.id, body.title)
+
+
+@router.patch("/playlists/{playlist_id}")
+async def rename_playlist(playlist_id: str, body: RenamePlaylistBody, account: Account = Depends(get_active_account)):
+    return await youtube.rename_playlist(account.credentials, account.id, playlist_id, body.title)
+
+
+@router.delete("/playlists/{playlist_id}")
+async def delete_playlist(playlist_id: str, account: Account = Depends(get_active_account)):
+    await youtube.delete_playlist(account.credentials, account.id, playlist_id)
+    return {"ok": True}
 
 
 @router.get("/playlists/{playlist_id}/items")

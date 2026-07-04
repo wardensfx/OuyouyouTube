@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { UserPlus, LogOut } from '@lucide/vue'
 import { api } from '../api/client'
 
 const accounts = ref([])
@@ -19,7 +20,7 @@ function initials(account) {
 function avatarStyle(account) {
   // Proxifié + caché côté backend (2h) : évite de re-taper le CDN Google à
   // chaque reload, qui finissait par nous 429.
-  return account?.picture ? { backgroundImage: `url(/auth/accounts/${account.id}/avatar)` } : {}
+  return account?.picture ? { backgroundImage: `url(${api.avatarUrl(account.id)})` } : {}
 }
 
 async function activate(id) {
@@ -51,27 +52,33 @@ onMounted(load)
     </button>
 
     <div v-if="open" class="switcher__backdrop" @click="open = false" />
-    <div v-if="open" class="switcher__panel">
-      <button
-        v-for="a in accounts"
-        :key="a.id"
-        class="switcher__row"
-        :class="{ 'switcher__row--active': a.active }"
-        @click="activate(a.id)"
-      >
-        <span class="avatar avatar--sm" :style="avatarStyle(a)">
-          <span v-if="!a.picture">{{ initials(a) }}</span>
-        </span>
-        <span class="switcher__row-text">
-          <span class="switcher__row-name">{{ a.name || a.email }}</span>
-          <span class="switcher__row-email">{{ a.email }}</span>
-        </span>
-      </button>
+    <Transition name="pop">
+      <div v-if="open" class="switcher__panel glass glass--strong">
+        <button
+          v-for="a in accounts"
+          :key="a.id"
+          class="switcher__row"
+          :class="{ 'switcher__row--active': a.active }"
+          @click="activate(a.id)"
+        >
+          <span class="avatar avatar--sm" :style="avatarStyle(a)">
+            <span v-if="!a.picture">{{ initials(a) }}</span>
+          </span>
+          <span class="switcher__row-text">
+            <span class="switcher__row-name">{{ a.name || a.email }}</span>
+            <span class="switcher__row-email">{{ a.email }}</span>
+          </span>
+        </button>
 
-      <div class="switcher__divider" />
-      <button class="switcher__action" @click="addAccount">+ Ajouter un compte</button>
-      <button class="switcher__action switcher__action--danger" @click="logout">Se déconnecter</button>
-    </div>
+        <div class="switcher__divider" />
+        <button class="switcher__action" @click="addAccount">
+          <UserPlus :size="16" /> Ajouter un compte
+        </button>
+        <button class="switcher__action switcher__action--danger" @click="logout">
+          <LogOut :size="16" /> Se déconnecter
+        </button>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -91,7 +98,7 @@ onMounted(load)
   border-radius: 999px;
 }
 .switcher__trigger:hover {
-  background: #1f1f1f;
+  background: rgba(255, 255, 255, 0.08);
 }
 .switcher__name {
   font-size: 0.85rem;
@@ -128,13 +135,20 @@ onMounted(load)
   position: absolute;
   right: 0;
   top: calc(100% + 0.5rem);
-  background: #181818;
-  border: 1px solid #2a2a2a;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   min-width: 220px;
   padding: 0.4rem;
   z-index: 21;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  transform-origin: top right;
+}
+.pop-enter-active,
+.pop-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.pop-enter-from,
+.pop-leave-to {
+  opacity: 0;
+  transform: scale(0.95) translateY(-4px);
 }
 .switcher__row {
   display: flex;
@@ -150,10 +164,10 @@ onMounted(load)
   cursor: pointer;
 }
 .switcher__row:hover {
-  background: #232323;
+  background: rgba(255, 255, 255, 0.1);
 }
 .switcher__row--active {
-  background: #232323;
+  background: rgba(255, 255, 255, 0.1);
 }
 .switcher__row-text {
   display: flex;
@@ -175,11 +189,13 @@ onMounted(load)
 }
 .switcher__divider {
   height: 1px;
-  background: #2a2a2a;
+  background: var(--glass-border);
   margin: 0.3rem 0;
 }
 .switcher__action {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   width: 100%;
   background: transparent;
   border: none;
@@ -191,9 +207,9 @@ onMounted(load)
   font-size: 0.85rem;
 }
 .switcher__action:hover {
-  background: #232323;
+  background: rgba(255, 255, 255, 0.1);
 }
 .switcher__action--danger {
-  color: #ff6b6b;
+  color: var(--danger);
 }
 </style>
