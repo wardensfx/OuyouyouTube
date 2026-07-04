@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ArrowLeft, Heart, Plus } from '@lucide/vue'
 import { api } from '../api/client'
 import { useProgressStore } from '../stores/progress'
+import { useHistoryStore } from '../stores/history'
 import { useLikeButton } from '../composables/useLikeButton'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 import { formatRelativeDate, formatViewCount } from '../utils/format'
@@ -10,6 +11,7 @@ import { formatRelativeDate, formatViewCount } from '../utils/format'
 const props = defineProps({ videoId: { type: String, required: true } })
 
 const progressStore = useProgressStore()
+const historyStore = useHistoryStore()
 
 const status = ref('idle') // idle | downloading | ready | error
 const errorMessage = ref(null)
@@ -25,6 +27,7 @@ const addToPlaylistOpen = ref(false)
 async function loadInfo() {
   try {
     info.value = await api.getVideoInfo(props.videoId)
+    if (info.value) historyStore.record(info.value)
   } catch {
     info.value = null
   }

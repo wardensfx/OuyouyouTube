@@ -78,6 +78,13 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       global vers la recherche avec focus auto. Tous ignorés si le focus
       est déjà dans un champ de saisie ou qu'une touche modificatrice est
       pressée.
+- [x] Page "Historique" (`/history`, entrée de sidebar). L'API YouTube
+      Data v3 n'expose pas l'historique de visionnage réel (confirmé :
+      `activities.list` ne renvoie que l'activité de chaîne — uploads,
+      likes — pas les vidéos regardées, même restriction que `WL`/`LL`
+      ci-dessous) — fallback local via IndexedDB (`stores/history.js`,
+      200 entrées max, dédoublonnées par vidéo, la plus récente en tête),
+      journalisé à chaque ouverture du lecteur (`Player.vue`).
 
 ## Won't (pour l'instant)
 

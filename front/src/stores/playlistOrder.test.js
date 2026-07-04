@@ -1,11 +1,24 @@
 import 'fake-indexeddb/auto'
+import { openDB } from 'idb'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { usePlaylistOrderStore } from './playlistOrder'
 
 describe('usePlaylistOrderStore', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     setActivePinia(createPinia())
+    // db/index.js memoizes its IndexedDB connection at module scope, so it
+    // survives across tests in this file — clear its data directly (via an
+    // independent connection to the same database) for real test isolation.
+    const db = await openDB('ouyouyoutube', 2, {
+      upgrade(db) {
+        for (const name of ['playlist_order', 'history']) {
+          if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: 'key' })
+        }
+      },
+    })
+    await db.clear('playlist_order')
+    db.close()
   })
 
   it('starts empty and appends unknown playlists on sync', async () => {
