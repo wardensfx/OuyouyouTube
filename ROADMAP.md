@@ -112,6 +112,14 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
   faisait planter `/auth/callback` (`InsecureTransportError`, oauthlib voit
   un callback OAuth en http). Fixé via `trusted_proxies static private_ranges`
   dans `front/Caddyfile` (`fix/caddy-trusted-proxies`, mergé).
+- Messages d'erreur yt-dlp différenciés — `feat/ytdlp-error-messages`.
+  `downloader.py` renvoyait la trace brute de l'exception telle quelle.
+  yt-dlp ne distingue la plupart des cas que par le texte du message (pas
+  de sous-classe dédiée) sauf `GeoRestrictedError`/`UnavailableVideoError` ;
+  reconnaissance des tournures les plus courantes (vidéo privée,
+  vérification d'âge, réservée aux membres, supprimée, pas encore
+  disponible) pour afficher un message actionnable côté lecteur au lieu
+  du texte brut yt-dlp.
 
 ## Sécurité — revue et correctifs
 
