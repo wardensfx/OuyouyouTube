@@ -6,7 +6,7 @@
 {$SITE_ADDRESS:localhost} {
 	encode gzip
 
-	@api path /auth* /playlists* /favorites* /video*
+	@api path /auth* /playlists* /favorites* /search* /video*
 	handle @api {
 		reverse_proxy {$BACKEND_ADDR:backend:8000}
 	}

@@ -28,7 +28,10 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api/, /^\/auth/, /^\/video/],
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/playlists') || url.pathname.startsWith('/favorites'),
+            urlPattern: ({ url }) =>
+              url.pathname.startsWith('/playlists') ||
+              url.pathname.startsWith('/favorites') ||
+              url.pathname.startsWith('/search'),
             handler: 'NetworkFirst',
             options: { cacheName: 'metadata-cache', expiration: { maxAgeSeconds: 60 * 10 } },
           },
@@ -42,6 +45,7 @@ export default defineConfig({
       '/auth': 'http://127.0.0.1:8000',
       '/playlists': 'http://127.0.0.1:8000',
       '/favorites': 'http://127.0.0.1:8000',
+      '/search': 'http://127.0.0.1:8000',
       '/video': 'http://127.0.0.1:8000',
     },
   },

@@ -35,6 +35,8 @@ export const api = {
   likeVideo: (videoId) => request(`/favorites/${videoId}`, { method: 'PUT' }),
   unlikeVideo: (videoId) => request(`/favorites/${videoId}`, { method: 'DELETE' }),
 
+  search: (q) => request(`/search?q=${encodeURIComponent(q)}`),
+
   prepareVideo: (videoId) => request(`/video/${videoId}/prepare`, { method: 'POST' }),
   getVideoStatus: (videoId) => request(`/video/${videoId}/status`),
   streamUrl: (videoId) => `/video/${videoId}/stream`,
