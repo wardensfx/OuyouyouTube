@@ -20,7 +20,9 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       retour (scroll + `<KeepAlive>`) — `feat/ui-shell-redesign` (PR ouverte,
       pas encore mergée). Revue UX incluse : badges de durée, progression de
       téléchargement réelle, tiroir de navigation mobile, mises à jour
-      optimistes + toasts d'erreur (favoris/playlists), icônes lucide.
+      optimistes + toasts d'erreur (favoris/playlists), icônes lucide,
+      ordre des playlists personnalisable (état partagé Pinia), page
+      "Vidéos aimées" dédiée + entrée de menu.
 - [ ] Pages dédiées par section (Abonnements, Tendances, chaque Playlist)
       accessibles depuis le menu, avec un lien "Voir tout" + accueil moins
       chargé (aperçu limité par section) — `feat/section-pages`
@@ -47,9 +49,13 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
 
 ## Won't (pour l'instant)
 
-- [ ] "Watch Later" natif — bloqué côté API YouTube Data v3 (Google a coupé
-      l'accès lecture/écriture à la playlist système `WL` en 2016, mesure
-      anti-abus, pas contournable sans scraper — hors scope du projet).
+- [ ] "Watch Later" natif et playlist "Liked videos" (`LL`) — bloqués côté
+      API YouTube Data v3 (Google a coupé l'accès lecture/écriture aux
+      playlists système `WL`/`LL` en 2016, mesure anti-abus, pas
+      contournable sans scraper — hors scope du projet). "Favoris" dans
+      l'app passe donc par `videos.rate`/`myRating=like`, resté supporté —
+      pas gérable comme une playlist (pas dans "Gérer les playlists"),
+      décision confirmée avec l'utilisateur.
 - [ ] Commentaires
 - [ ] Multi-utilisateurs (plusieurs humains distincts — seul le multi-comptes
       d'une même personne est prévu)

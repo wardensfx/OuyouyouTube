@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Home, Search, Settings2 } from '@lucide/vue'
+import { Home, Search, Heart, Settings2 } from '@lucide/vue'
 import { useLibraryStore } from '../stores/library'
 import { usePlaylistOrder } from '../composables/usePlaylistOrder'
 
@@ -28,6 +28,9 @@ watch(() => route.fullPath, () => emit('close'))
       </RouterLink>
       <RouterLink to="/search" class="sidebar__link" active-class="sidebar__link--active">
         <Search :size="18" /> Recherche
+      </RouterLink>
+      <RouterLink to="/favorites" class="sidebar__link" active-class="sidebar__link--active">
+        <Heart :size="18" /> Vidéos aimées
       </RouterLink>
     </nav>
 

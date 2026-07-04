@@ -21,7 +21,7 @@ const sidebarOpen = ref(false)
 
       <main class="app__content">
         <RouterView v-slot="{ Component }">
-          <KeepAlive :include="['Home', 'Search', 'PlaylistDetail']">
+          <KeepAlive :include="['Home', 'Search', 'PlaylistDetail', 'Liked']">
             <component :is="Component" />
           </KeepAlive>
         </RouterView>
