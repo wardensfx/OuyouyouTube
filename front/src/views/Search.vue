@@ -2,10 +2,13 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api/client'
+import { useProgressStore } from '../stores/progress'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 
 defineOptions({ name: 'Search' })
+
+const progressStore = useProgressStore()
 
 const props = defineProps({ q: { type: String, default: '' } })
 const router = useRouter()
@@ -24,6 +27,7 @@ async function runSearch(q) {
   searched.value = true
   try {
     results.value = await api.search(q.trim())
+    progressStore.fetchFor(results.value.map((v) => v.video_id))
   } catch (e) {
     error.value = e.message
   } finally {

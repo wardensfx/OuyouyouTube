@@ -2,14 +2,17 @@
 import { onMounted, ref } from 'vue'
 import { ArrowLeft } from '@lucide/vue'
 import { useLibraryStore } from '../stores/library'
+import { useProgressStore } from '../stores/progress'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 
 defineOptions({ name: 'Liked' })
 
 const library = useLibraryStore()
-onMounted(() => {
-  if (!library.favorites.length) library.loadAll()
+const progressStore = useProgressStore()
+onMounted(async () => {
+  if (!library.favorites.length) await library.loadAll()
+  progressStore.fetchFor(library.favorites.map((v) => v.video_id))
 })
 
 const modalVideo = ref(null)

@@ -2,11 +2,13 @@
 import { onMounted, ref } from 'vue'
 import { ArrowLeft } from '@lucide/vue'
 import { api } from '../api/client'
+import { useProgressStore } from '../stores/progress'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 
 defineOptions({ name: 'Trending' })
 
+const progressStore = useProgressStore()
 const videos = ref([])
 const loading = ref(false)
 const error = ref(null)
@@ -17,6 +19,7 @@ async function load() {
   error.value = null
   try {
     videos.value = await api.getTrending()
+    progressStore.fetchFor(videos.value.map((v) => v.video_id))
   } catch (e) {
     error.value = e.message
   } finally {

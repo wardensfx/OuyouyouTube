@@ -48,6 +48,11 @@ export const api = {
   getSubscriptionsFeed: () => request('/home/subscriptions'),
 
   getVideoInfo: (videoId) => request(`/video/${videoId}/info`),
+  getProgressBulk: (videoIds) => request(`/video/progress?ids=${videoIds.map(encodeURIComponent).join(',')}`),
+  saveProgress: (videoId, position, duration) =>
+    request(`/video/${videoId}/progress`, { method: 'PUT', ...jsonBody({ position, duration }) }),
+  setWatched: (videoId, watched) =>
+    request(`/video/${videoId}/watched`, { method: 'PUT', ...jsonBody({ watched }) }),
   prepareVideo: (videoId) => request(`/video/${videoId}/prepare`, { method: 'POST' }),
   getVideoStatus: (videoId) => request(`/video/${videoId}/status`),
   streamUrl: (videoId) => `${API_BASE}/video/${videoId}/stream`,

@@ -5,12 +5,22 @@ Le seek fonctionne nativement grâce à Starlette FileResponse (Range headers).
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
 from google.oauth2.credentials import Credentials
+from pydantic import BaseModel
 
-from app import youtube
+from app import progress, youtube
 from app.downloader import prepare_video, get_status, STATUS_READY, STATUS_ERROR
 from app.session import Account, get_active_account, get_credentials
 
 router = APIRouter(prefix="/video", tags=["video"])
+
+
+class ProgressBody(BaseModel):
+    position: float
+    duration: float
+
+
+class WatchedBody(BaseModel):
+    watched: bool
 
 
 @router.get("/{video_id}/info")
@@ -20,6 +30,26 @@ async def info(video_id: str, account: Account = Depends(get_active_account)):
     if details is None:
         raise HTTPException(status_code=404, detail="Vidéo introuvable.")
     return details
+
+
+@router.get("/progress")
+async def bulk_progress(ids: str, account: Account = Depends(get_active_account)):
+    """Progression pour plusieurs vidéos en un seul appel (une requête par
+    grille de vignettes, pas une par vignette)."""
+    video_ids = [v for v in ids.split(",") if v]
+    return await progress.get_progress_bulk(account.id, video_ids)
+
+
+@router.put("/{video_id}/progress")
+async def set_progress(video_id: str, body: ProgressBody, account: Account = Depends(get_active_account)):
+    await progress.save_progress(account.id, video_id, body.position, body.duration)
+    return {"ok": True}
+
+
+@router.put("/{video_id}/watched")
+async def set_watched(video_id: str, body: WatchedBody, account: Account = Depends(get_active_account)):
+    await progress.mark_watched(account.id, video_id, body.watched)
+    return {"ok": True}
 
 
 @router.post("/{video_id}/prepare")

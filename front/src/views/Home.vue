@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { Settings, ChevronUp, ChevronDown, Plus, ChevronRight } from '@lucide/vue'
 import { api } from '../api/client'
 import { useLibraryStore } from '../stores/library'
+import { useProgressStore } from '../stores/progress'
 import { usePlaylistOrder } from '../composables/usePlaylistOrder'
 import VideoCard from '../components/VideoCard.vue'
 import PlaylistCard from '../components/PlaylistCard.vue'
@@ -13,7 +14,11 @@ defineOptions({ name: 'Home' })
 const PREVIEW_COUNT = 6
 
 const library = useLibraryStore()
-onMounted(() => library.loadAll())
+const progressStore = useProgressStore()
+onMounted(async () => {
+  await library.loadAll()
+  progressStore.fetchFor(library.favorites.map((v) => v.video_id))
+})
 
 const { ordered: orderedPlaylists } = usePlaylistOrder(() => library.playlists)
 const playlistsPreview = computed(() => orderedPlaylists.value.slice(0, PREVIEW_COUNT))
@@ -45,6 +50,7 @@ async function loadSubscriptions() {
   subscriptionsError.value = null
   try {
     subscriptions.value = await api.getSubscriptionsFeed()
+    progressStore.fetchFor(subscriptions.value.map((v) => v.video_id))
   } catch (e) {
     subscriptionsError.value = e.message
   } finally {
@@ -57,6 +63,7 @@ async function loadTrending() {
   trendingError.value = null
   try {
     trending.value = await api.getTrending()
+    progressStore.fetchFor(trending.value.map((v) => v.video_id))
   } catch (e) {
     trendingError.value = e.message
   } finally {
