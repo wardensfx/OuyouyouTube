@@ -1,14 +1,18 @@
 /**
  * Client HTTP minimal. `credentials: 'include'` est indispensable pour que
  * le cookie de session (httponly) parte avec chaque requête vers le backend.
+ * Tous les endpoints backend vivent sous /api pour ne jamais entrer en
+ * collision avec les routes du front (ex. /search, /playlists/manage).
  */
+const API_BASE = '/api'
+
 async function request(path, options = {}) {
-  const res = await fetch(path, {
+  const res = await fetch(`${API_BASE}${path}`, {
     credentials: 'include',
     ...options,
   })
   if (res.status === 401) {
-    window.location.href = '/auth/login'
+    window.location.href = `${API_BASE}/auth/login`
     return
   }
   if (!res.ok) {
@@ -46,11 +50,12 @@ export const api = {
   getVideoInfo: (videoId) => request(`/video/${videoId}/info`),
   prepareVideo: (videoId) => request(`/video/${videoId}/prepare`, { method: 'POST' }),
   getVideoStatus: (videoId) => request(`/video/${videoId}/status`),
-  streamUrl: (videoId) => `/video/${videoId}/stream`,
+  streamUrl: (videoId) => `${API_BASE}/video/${videoId}/stream`,
 
   getAccounts: () => request('/auth/accounts'),
   activateAccount: (accountId) => request(`/auth/accounts/${accountId}/activate`, { method: 'POST' }),
   unlinkAccount: (accountId) => request(`/auth/accounts/${accountId}`, { method: 'DELETE' }),
-  loginUrl: ({ link = false } = {}) => `/auth/login${link ? '?link=true' : ''}`,
+  avatarUrl: (accountId) => `${API_BASE}/auth/accounts/${accountId}/avatar`,
+  loginUrl: ({ link = false } = {}) => `${API_BASE}/auth/login${link ? '?link=true' : ''}`,
   logout: () => request('/auth/logout', { method: 'POST' }),
 }

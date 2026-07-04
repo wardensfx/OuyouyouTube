@@ -39,8 +39,10 @@ npm install
 npm run dev
 ```
 
-Ouvre http://localhost:5173 — le proxy Vite redirige `/auth`, `/playlists`,
-`/favorites`, `/video/*` vers le backend sur le port 8000.
+Ouvre http://localhost:5173 — le proxy Vite redirige tout ce qui est sous
+`/api/*` vers le backend sur le port 8000 (toutes les routes API vivent
+sous ce préfixe, justement pour ne jamais entrer en collision avec les
+routes du front, ex. `/search` ou `/playlists/manage`).
 
 ### Backend + Redis en container (recommandé, notamment sous Windows)
 
@@ -110,9 +112,9 @@ est nécessaire aussi en prod, pas juste en dev.
 
 Le service `frontend` de `docker-compose.yml` (profil `prod`) build la SPA
 et la sert via **Caddy** (`front/Dockerfile`, `front/Caddyfile`), qui fait
-aussi office de reverse proxy vers le backend pour `/auth`, `/playlists`,
-`/favorites`, `/video/*`. Un seul point d'entrée, HTTPS automatique (Let's
-Encrypt) si `SITE_ADDRESS` est un vrai nom de domaine.
+aussi office de reverse proxy vers le backend pour tout ce qui est sous
+`/api/*`. Un seul point d'entrée, HTTPS automatique (Let's Encrypt) si
+`SITE_ADDRESS` est un vrai nom de domaine.
 
 ```bash
 cp .env.example .env   # définir SITE_ADDRESS
@@ -166,11 +168,11 @@ systemctl --user enable --now ouyouyoutube-redis.service ouyouyoutube-backend.se
 
 ## Flow
 
-1. `/auth/login` → OAuth Google → cookie de session (le token reste en Redis, jamais côté client)
-2. `GET /playlists`, `/favorites` → wrap YouTube Data API, cache Redis 15 min
-3. `POST /video/{id}/prepare` → lance yt-dlp en tâche de fond
-4. `GET /video/{id}/status` → poll côté front jusqu'à `ready`
-5. `GET /video/{id}/stream` → `FileResponse` (Range natif, seek OK)
+1. `/api/auth/login` → OAuth Google → cookie de session (le token reste en Redis, jamais côté client)
+2. `GET /api/playlists`, `/api/favorites` → wrap YouTube Data API, cache Redis 15 min
+3. `POST /api/video/{id}/prepare` → lance yt-dlp en tâche de fond
+4. `GET /api/video/{id}/status` → poll côté front jusqu'à `ready`
+5. `GET /api/video/{id}/stream` → `FileResponse` (Range natif, seek OK)
 6. Job périodique (`app/cleanup.py`) → supprime les fichiers > `VIDEO_TTL_SECONDS`
 
 ## Notes
