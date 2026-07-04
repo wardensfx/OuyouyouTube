@@ -46,6 +46,36 @@ depending on your jurisdiction and how you use it.
 See [`ROADMAP.md`](ROADMAP.md) for the detail of what's done, in progress,
 or deliberately out of scope.
 
+## Screenshots
+
+> Mockups built to match the app's actual theme/layout, not live captures —
+> capturing the real thing needs a working deployment logged into an
+> actual Google account. Happy to swap these for real captures from
+> whoever has one running.
+
+| Home feed | Player |
+|---|---|
+| ![Home feed](docs/screenshots/home.png) | ![Player](docs/screenshots/player.png) |
+
+| Playlist page | Mobile (drawer + bottom nav) |
+|---|---|
+| ![Playlist page](docs/screenshots/playlist.png) | ![Mobile view](docs/screenshots/mobile.png) |
+
+## Side effects of self-hosted playback
+
+Not the point of the project, but worth noting — since playback is a
+plain `<video>` element served from your own backend (`server/app/video.py`,
+`FileResponse`) rather than YouTube's own app or embed, you get a couple of
+things for free, as a side effect of the technical approach rather than
+anything built on purpose:
+
+- **No ads**, including on mobile — there's nothing to inject an ad into,
+  it's just a video file.
+- **Background / lock-screen playback works on iPhone/Safari** — the
+  official YouTube app restricts that to Premium subscribers; here it's
+  standard OS-level media session behavior for any `<video>` tag, not a
+  feature this project implements.
+
 ## Architecture
 
 ```mermaid
