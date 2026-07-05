@@ -202,10 +202,20 @@ async def get_video_details(credentials: Credentials, account_id: str, video_id:
         return None
 
     item = items[0]
+    # `videos.getRating` est le seul moyen de connaître l'avis de l'utilisateur
+    # sur CETTE vidéo précise (1 unité de quota) — dériver "aimée" d'une
+    # recherche dans la liste des favoris ne marche plus de façon fiable
+    # depuis que celle-ci est paginée (#78) : une vidéo aimée mais absente des
+    # pages déjà chargées apparaissait à tort comme non aimée (#87).
+    rating_response = yt.videos().getRating(id=video_id).execute()
+    rating_items = rating_response.get("items", [])
+    liked = bool(rating_items) and rating_items[0].get("rating") == "like"
+
     details = {
         **_video_summary(item),
         "description": item["snippet"].get("description", ""),
         "view_count": item.get("statistics", {}).get("viewCount"),
+        "liked": liked,
     }
     await set_json(cache_key, details, ttl=settings.metadata_ttl_seconds)
     return details
@@ -343,6 +353,7 @@ async def rate_video(credentials: Credentials, account_id: str, video_id: str, l
     yt = _client(credentials)
     yt.videos().rate(id=video_id, rating="like" if liked else "none").execute()
     await delete_prefix(f"liked:{account_id}:")
+    await get_redis().delete(f"video_details:{account_id}:{video_id}")
 
 
 async def get_channel_info(credentials: Credentials, channel_id: str) -> dict | None:
