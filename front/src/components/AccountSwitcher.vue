@@ -7,7 +7,12 @@ const accounts = ref([])
 const open = ref(false)
 
 async function load() {
-  accounts.value = (await api.getAccounts()) || []
+  try {
+    accounts.value = await api.getAccounts()
+  } catch {
+    // Session expirée : la redirection vers /auth/login est déjà lancée par
+    // request(), rien de plus à faire ici.
+  }
 }
 
 const active = computed(() => accounts.value.find((a) => a.active))

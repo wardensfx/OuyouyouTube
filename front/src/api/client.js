@@ -6,6 +6,32 @@
  */
 const API_BASE = '/api'
 
+// Sur session expirée, on redirige déjà vers /auth/login : ce type d'erreur
+// sert seulement à ce que l'appelant sache qu'il ne recevra jamais de
+// réponse, plutôt que de planter plus loin sur un `undefined` inattendu.
+export class SessionExpiredError extends Error {
+  constructor() {
+    super('Session expirée, redirection…')
+    this.name = 'SessionExpiredError'
+  }
+}
+
+// Les erreurs FastAPI ({"detail": "..."}) sont déjà rédigées en français
+// dans ce projet (ex. "Vidéo introuvable.") — les extraire donne un message
+// précis sans repasser par le statut/texte HTTP brut en anglais. Le repli
+// générique ne sert que pour les réponses qui n'ont pas cette forme (erreur
+// réseau, page d'erreur générique d'un proxy, etc.).
+function friendlyMessage(status, body) {
+  try {
+    const detail = JSON.parse(body)?.detail
+    if (typeof detail === 'string' && detail) return detail
+  } catch {
+    // corps non-JSON : repli ci-dessous
+  }
+  if (status >= 500) return 'Erreur serveur, réessaie plus tard.'
+  return 'Une erreur est survenue.'
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     credentials: 'include',
@@ -13,11 +39,10 @@ async function request(path, options = {}) {
   })
   if (res.status === 401) {
     window.location.href = `${API_BASE}/auth/login`
-    return
+    throw new SessionExpiredError()
   }
   if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`${res.status} ${res.statusText}: ${body}`)
+    throw new Error(friendlyMessage(res.status, await res.text()))
   }
   const contentType = res.headers.get('content-type') || ''
   return contentType.includes('application/json') ? res.json() : res

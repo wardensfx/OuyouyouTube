@@ -3,56 +3,42 @@ import { computed, onMounted, ref } from 'vue'
 import { ArrowLeft } from '@lucide/vue'
 import { api } from '../api/client'
 import { useProgressStore } from '../stores/progress'
+import { usePaginatedList } from '../composables/usePaginatedList'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 import SkeletonCard from '../components/SkeletonCard.vue'
 import EmptyState from '../components/EmptyState.vue'
+import LoadMoreStatus from '../components/LoadMoreStatus.vue'
 
 defineOptions({ name: 'Trending' })
 const SKELETON_COUNT = 6
 
 const progressStore = useProgressStore()
-const videos = ref([])
+const {
+  items: videos,
+  loading,
+  loadingMore,
+  error,
+  loadMoreError,
+  nextPageToken,
+  load,
+  loadMore,
+} = usePaginatedList((pageToken) => api.getTrending(pageToken))
 // Vidéo déjà vue = hors du flux de découverte (contrairement aux
 // Favoris/Playlists, qu'on constitue soi-même).
 const visibleVideos = computed(() => videos.value.filter((v) => !progressStore.items[v.video_id]?.watched))
-const loading = ref(false)
-const loadingMore = ref(false)
-const error = ref(null)
-const nextPageToken = ref(null)
 const modalVideo = ref(null)
 
-async function load() {
-  loading.value = true
-  error.value = null
-  try {
-    const page = await api.getTrending()
-    videos.value = page.items
-    nextPageToken.value = page.next_page_token
-    progressStore.fetchFor(videos.value.map((v) => v.video_id))
-  } catch (e) {
-    error.value = e.message
-  } finally {
-    loading.value = false
-  }
+async function loadWithProgress() {
+  progressStore.fetchFor((await load()).map((v) => v.video_id))
 }
-
-async function loadMore() {
-  if (!nextPageToken.value || loadingMore.value) return
-  loadingMore.value = true
-  try {
-    const page = await api.getTrending(nextPageToken.value)
-    videos.value = [...videos.value, ...page.items]
-    nextPageToken.value = page.next_page_token
-    progressStore.fetchFor(page.items.map((v) => v.video_id))
-  } finally {
-    loadingMore.value = false
-  }
+async function loadMoreWithProgress() {
+  progressStore.fetchFor((await loadMore()).map((v) => v.video_id))
 }
-const { sentinel } = useInfiniteScroll(loadMore)
+const { sentinel } = useInfiniteScroll(loadMoreWithProgress)
 
-onMounted(load)
+onMounted(loadWithProgress)
 </script>
 
 <template>
@@ -63,18 +49,24 @@ onMounted(load)
     <div v-if="loading" class="grid">
       <SkeletonCard v-for="n in SKELETON_COUNT" :key="n" />
     </div>
-    <p v-else-if="error" class="state state--error">{{ error }}</p>
+    <div v-else-if="error" class="state state--error">
+      <p>{{ error }}</p>
+      <button class="retry-btn" @click="loadWithProgress">Réessayer</button>
+    </div>
     <EmptyState v-else-if="!visibleVideos.length" message="Rien à afficher pour l'instant." />
 
-    <div v-else class="grid">
-      <VideoCard
-        v-for="v in visibleVideos"
-        :key="v.video_id"
-        :video="v"
-        @add-to-playlist="modalVideo = v"
-      />
-    </div>
-    <div v-if="nextPageToken" ref="sentinel" class="sentinel" />
+    <template v-else>
+      <div class="grid">
+        <VideoCard
+          v-for="v in visibleVideos"
+          :key="v.video_id"
+          :video="v"
+          @add-to-playlist="modalVideo = v"
+        />
+      </div>
+      <div v-if="nextPageToken" ref="sentinel" class="sentinel" />
+      <LoadMoreStatus :loading="loadingMore" :error="loadMoreError" @retry="loadMoreWithProgress" />
+    </template>
 
     <AddToPlaylistModal v-if="modalVideo" :video="modalVideo" @close="modalVideo = null" />
   </div>
@@ -101,6 +93,19 @@ h1 {
 }
 .state--error {
   color: var(--danger);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.retry-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  color: inherit;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 .sentinel {
   height: 1px;
