@@ -27,10 +27,26 @@ const addToPlaylistOpen = ref(false)
 async function loadInfo() {
   try {
     info.value = await api.getVideoInfo(props.videoId)
-    if (info.value) historyStore.record(info.value)
+    if (info.value) {
+      historyStore.record(info.value)
+      setMediaSessionMetadata(info.value)
+    }
   } catch {
     info.value = null
   }
+}
+
+// Sans ça, iOS/Safari n'a aucune métadonnée vidéo à afficher sur l'écran
+// verrouillé/Control Center et retombe sur un rendu générique façon lecteur
+// audio (nom de l'app, icône placeholder) au lieu du titre/de la vignette
+// de la vidéo en cours.
+function setMediaSessionMetadata(video) {
+  if (!('mediaSession' in navigator)) return
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: video.title,
+    artist: video.channel,
+    artwork: video.thumbnail ? [{ src: video.thumbnail, sizes: '320x180', type: 'image/jpeg' }] : [],
+  })
 }
 
 function reportFinal(videoId) {
@@ -324,6 +340,11 @@ watch(() => props.videoId, (_newId, oldId) => {
   overflow-wrap: anywhere;
   max-height: 8rem;
   overflow-y: auto;
+  /* overflow-y: auto alone implicitly computes overflow-x to auto too (per
+     spec), so any single line still wider than the box (a long lyrics line,
+     etc.) got its own horizontal scrollbar inside this small block — belt
+     and suspenders alongside overflow-wrap above. */
+  overflow-x: hidden;
 }
 .state {
   display: flex;
