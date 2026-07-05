@@ -187,7 +187,7 @@ async function createAndAdd() {
   color: inherit;
 }
 .modal__submit {
-  background: var(--accent);
+  background: var(--accent-strong);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);

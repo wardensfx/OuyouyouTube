@@ -153,7 +153,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  background: var(--accent);
+  background: var(--accent-strong);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);

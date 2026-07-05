@@ -121,7 +121,7 @@ watch(
   font-size: 1rem;
 }
 .search__submit {
-  background: var(--accent);
+  background: var(--accent-strong);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);

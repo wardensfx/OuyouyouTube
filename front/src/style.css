@@ -9,7 +9,12 @@
   --text: #f1f1f4;
   --text-dim: rgba(241, 241, 244, 0.65);
   --accent: #8b7cf6;
-  --accent-strong: #a78bfa;
+  /* Même teinte que --accent, assombrie : #8b7cf6 avec du texte blanc ne
+     calcule qu'environ 3.3:1 de contraste, sous le seuil WCAG AA (4.5:1)
+     pour du texte de taille normale. Réservée aux surfaces qui portent du
+     texte/libellé (boutons pleins) — --accent reste inchangée pour les
+     bordures et autres usages non textuels. */
+  --accent-strong: #6753f3;
   --danger: #ff6b6b;
 
   /* Teintés sombres (pas blancs) : un lavis blanc à 6% sur un fond déjà

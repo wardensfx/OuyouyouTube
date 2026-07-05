@@ -375,7 +375,7 @@ function move(key, dir) {
   color: inherit;
 }
 .new-playlist__submit {
-  background: var(--accent);
+  background: var(--accent-strong);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
