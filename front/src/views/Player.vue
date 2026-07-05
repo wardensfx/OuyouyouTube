@@ -89,7 +89,7 @@ async function poll() {
       errorMessage.value = s.error || 'Échec du téléchargement'
       return
     }
-    if (s.progress !== undefined) progress.value = Number(s.progress)
+    if (s.progress !== undefined) progress.value = Math.round(Number(s.progress))
     pollTimer = setTimeout(poll, 1500)
   } catch (e) {
     status.value = 'error'
@@ -321,6 +321,11 @@ watch(() => props.videoId, (_newId, oldId) => {
 .info__title {
   font-size: 1.1rem;
   margin: 0 0 0.4rem;
+  /* Un titre inhabituellement long et non sécable (rare, mais pas
+     impossible) reposerait sinon uniquement sur le filet de sécurité
+     global overflow-x: hidden et se couperait silencieusement au lieu de
+     passer à la ligne — même raison que .info__description ci-dessous. */
+  overflow-wrap: anywhere;
 }
 .info__meta {
   font-size: 0.85rem;

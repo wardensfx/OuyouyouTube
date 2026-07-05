@@ -192,6 +192,12 @@ onMounted(load)
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* Sans ça, cet enfant flex garde un min-width égal au min-content de son
+     contenu : un nom/email de compte lié inhabituellement long ne serait
+     pas garanti de tronquer via les ellipses de .switcher__row-name/-email
+     ci-dessous, et pourrait élargir .switcher__panel au-delà de ce qui est
+     prévu sur un écran étroit. */
+  min-width: 0;
 }
 .switcher__row-name {
   font-size: 0.85rem;
