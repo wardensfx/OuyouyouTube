@@ -10,11 +10,14 @@ import json
 import secrets
 from dataclasses import dataclass
 
+import requests
 from fastapi import Request, Response, HTTPException
 from google.oauth2.credentials import Credentials
 
 from app.cache import get_redis
 from app.config import settings
+
+GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke"
 
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 jours
 ACCOUNT_TTL = 60 * 60 * 24 * 30  # 30 jours
@@ -122,6 +125,41 @@ async def activate_account(session_id: str, account_id: str):
     await _save_session(session_id, data)
 
 
+async def _account_still_referenced(account_id: str, excluding_session_id: str) -> bool:
+    """Un même compte Google peut être lié depuis plusieurs sessions (ex:
+    deux navigateurs/appareils) — avant de révoquer son jeton, on vérifie
+    qu'aucune AUTRE session ne le référence encore, sinon on casserait cet
+    autre appareil sans prévenir. Coût acceptable : opération rare (retrait
+    de compte), pas un chemin chaud."""
+    redis = get_redis()
+    async for key in redis.scan_iter(match="session:*"):
+        if key == _session_key(excluding_session_id):
+            continue
+        raw = await redis.get(key)
+        if raw is None:
+            continue
+        if account_id in json.loads(raw).get("account_ids", []):
+            return True
+    return False
+
+
+async def _revoke_and_purge_account(account_id: str):
+    """Révoque le jeton auprès de Google et supprime l'enregistrement du
+    compte de Redis — sans ça, retirer un compte lié ne faisait que le sortir
+    de la liste de la session, en laissant le jeton (scope YouTube complet)
+    valide et stocké jusqu'à ACCOUNT_TTL (30 jours)."""
+    raw = await get_redis().get(_account_key(account_id))
+    if raw is not None:
+        data = json.loads(raw)
+        token = data.get("refresh_token") or data.get("token")
+        if token:
+            try:
+                requests.post(GOOGLE_REVOKE_URL, params={"token": token}, timeout=5)
+            except requests.RequestException:
+                pass  # best-effort : purger notre propre stockage prime sur la révocation réseau
+    await get_redis().delete(_account_key(account_id))
+
+
 async def unlink_account(session_id: str, account_id: str):
     data = await _load_session(session_id)
     if account_id in data["account_ids"]:
@@ -131,6 +169,9 @@ async def unlink_account(session_id: str, account_id: str):
     if data["active_account_id"] == account_id:
         data["active_account_id"] = data["account_ids"][0]
     await _save_session(session_id, data)
+
+    if not await _account_still_referenced(account_id, excluding_session_id=session_id):
+        await _revoke_and_purge_account(account_id)
 
 
 def session_id_from_request(request: Request) -> str:
