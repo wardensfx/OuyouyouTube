@@ -85,6 +85,20 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
       ci-dessous) — fallback local via IndexedDB (`stores/history.js`,
       200 entrées max, dédoublonnées par vidéo, la plus récente en tête),
       journalisé à chaque ouverture du lecteur (`Player.vue`).
+- [x] Notes de version consultables depuis l'app — clic sur le numéro de
+      version (bas de la sidebar) ouvre une modale qui va chercher
+      `CHANGELOG.md` sur GitHub, au tag exact de la version en cours
+      d'exécution (`v{version}`, posé par `release-please`), plutôt qu'à la
+      branche `main` — évite un décalage si l'instance déployée n'a pas
+      encore été mise à jour. Récupéré à l'exécution plutôt qu'à la
+      compilation : `CHANGELOG.md` vit à la racine du dépôt, hors du
+      contexte de build Docker du front (`front/` seulement, cf.
+      `front/Dockerfile` + `docker-compose.yml`/`publish-images.yml`), donc
+      un lien symbolique/`readFileSync` à la compilation aurait cassé
+      silencieusement l'image de prod. `marked` (import dynamique, hors du
+      bundle principal) rend le markdown ; repli "Voir sur GitHub" si le
+      fetch échoue. Modale sur le même patron d'accessibilité que
+      `AddToPlaylistModal.vue` (`role="dialog"`, piège de focus, Escape).
 
 ## Won't (pour l'instant)
 
@@ -202,6 +216,67 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
   besoin de gérer un changement de compte "à chaud". Trouvé lors d'une
   revue de sécurité automatisée sur les changements de la session
   précédente (issue #56).
+- Revue multi-agents (sécu/archi/UI-UX) sur les changements de pagination
+  de la session précédente (issues #82-#99, `claude/*` puis PR par PR,
+  toutes mergées) :
+  - #82 (critique) : `get_playlist_items`/`get_video_details` (cache Redis)
+    n'étaient pas namespacés par `account_id`, contrairement aux autres
+    caches — un compte lié voyait une playlist/vidéo privée d'un autre
+    compte lié à la même session si mise en cache dans la fenêtre de TTL
+    (15 min), sans repasser par la vérification de permission Google.
+  - #83 : retirer un compte lié ne purgeait/révoquait pas son jeton OAuth
+    (`unlink_account`), restait valide en Redis jusqu'à 30 jours après.
+    Révoque désormais côté Google + supprime l'enregistrement Redis, sauf
+    si un autre appareil/session a encore ce compte lié (vérifié par scan
+    des sessions avant de couper).
+  - #85 : `docker-compose.yml` publiait le port Redis (`6379:6379`) sans
+    authentification sur toutes les interfaces de l'hôte — restreint à
+    `127.0.0.1`. Ne concernait que le chemin docker-compose, pas les
+    quadlets Podman (déjà correctement confinés au réseau interne).
+  - #86 : `playlist_id`/`item_id` non validés pouvaient élargir le motif
+    glob de `delete_prefix` (SCAN Redis) et invalider le cache d'une autre
+    playlist — pattern de charset borné ajouté, même principe que
+    `video_id`.
+  - #84 (décision produit) : pas de liste blanche de comptes Google
+    autorisés à s'authentifier par défaut (l'instance est sensée être
+    protégée en amont — proxy d'auth si exposée) ; `ALLOWED_GOOGLE_EMAILS`
+    optionnel ajouté dans `config.py`/`.env.example` pour qui veut quand
+    même la restriction, no-op si non défini.
+  - #87 : le bouton "J'aime" se basait sur `library.favorites` (liste
+    partielle depuis la pagination des favoris, #78) pour savoir si une
+    vidéo était aimée — faux pour toute vidéo hors des pages déjà
+    chargées. `get_video_details` renvoie maintenant un champ `liked`
+    autoritaire (`videos.getRating`, 1 unité de quota) pour la vidéo en
+    cours dans le lecteur.
+  - #88/#89 : `loadMore()` avalait ses erreurs silencieusement (aucune
+    dans les 5 vues paginées, contrairement à `load()`) et dupliquait la
+    même logique de chargement/état partout — composable
+    `usePaginatedList` + composant `LoadMoreStatus.vue` partagés ;
+    `api/client.js` mappe désormais les erreurs HTTP vers un message
+    français plutôt que la ligne de statut brute.
+  - #90 : ajout de `fakeredis`/`pytest-asyncio` (dev only) et de tests
+    unitaires vérifiant que chaque mutation (like, ajout/retrait d'item,
+    suppression de playlist) invalide bien toutes les pages en cache
+    concernées, pas une clé fixe qui n'existe plus sous cette forme.
+  - #91/#92/#93 (accessibilité) : `useEscapeToClose.js` partagé par les
+    modales/menus (Échap + focus rendu au déclencheur) ; restructuration
+    de `VideoCard.vue` pour ne plus imbriquer de boutons dans le
+    `RouterLink` (HTML invalide) ; agrandissement des zones tactiles des
+    petits boutons icône via un `::before` en `position: absolute`
+    (n'agrandit pas le rendu visuel).
+  - #94/#95/#96/#97/#99 (UI, plus mineur) : `min-width: 0` manquant sur
+    `PlaylistCard.vue` (même bug que #77) ; retour visuel figé/estompé
+    pendant le chargement complet d'un tri dans `PlaylistDetail.vue` ;
+    `--accent-strong` (déjà déclarée, jamais utilisée) redéfinie plus
+    sombre pour les boutons à texte blanc (contraste WCAG AA) ;
+    `Channel.vue`/`History.vue` alignées sur le patron skeleton/empty-state
+    standard ; petits correctifs CSS (arrondi du pourcentage de
+    téléchargement, `overflow-wrap` sur les titres, `min-width: 0` sur
+    `AccountSwitcher.vue`).
+  - #98 : terminologie unifiée sur "Vidéos aimées" (section d'accueil,
+    toasts, tooltip du cœur) — cohérent avec la sidebar et la page dédiée,
+    qui l'utilisaient déjà. Le bouton du lecteur garde "J'aime"/"Aimée"
+    (verbe d'action sur un bouton, pas un nom de fonctionnalité).
 
 ## Tests & CI
 

@@ -252,6 +252,13 @@ Console **and** in `GOOGLE_REDIRECT_URI`/`FRONTEND_ORIGIN` (see the
 domains: you can't test with `http://xxx.local`, you need `localhost` or a
 real domain.
 
+**Optional: restrict which Google accounts can sign in** — by default any
+Google account can complete the OAuth flow (the app is meant to sit behind
+your own perimeter, e.g. an auth proxy, if exposed beyond your own
+machine). To restrict it anyway, set `ALLOWED_GOOGLE_EMAILS` in
+`server/.env` to a comma-separated list of allowed addresses; login is
+rejected for any other account. Leave it unset for no restriction.
+
 ### Backend + Redis in a container (recommended, especially on Windows)
 
 Redis has no official Windows build, and running the backend in a
@@ -454,6 +461,7 @@ their authors and maintainers:
 - [vue-router](https://github.com/vuejs/router) (MIT) — SPA routing
 - [vite-plugin-pwa](https://github.com/vite-pwa/vite-plugin-pwa) (MIT) — manifest + service worker
 - [Lucide](https://github.com/lucide-icons/lucide) (ISC) — icons
+- [marked](https://github.com/markedjs/marked) (MIT) — renders `CHANGELOG.md` in the in-app changelog viewer
 - [Vitest](https://github.com/vitest-dev/vitest) (MIT) — tests
 
 **Infrastructure (deployment)**
