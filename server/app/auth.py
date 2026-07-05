@@ -89,6 +89,10 @@ async def callback(request: Request):
     credentials = flow.credentials
 
     profile = build("oauth2", "v2", credentials=credentials).userinfo().get().execute()
+    allowed = settings.allowed_google_emails_set
+    if allowed and (profile.get("email") or "").lower() not in allowed:
+        raise HTTPException(status_code=403, detail="Ce compte Google n'est pas autorisé sur cette instance.")
+
     account_id = profile["id"]
     await save_account(account_id, credentials, profile)
 

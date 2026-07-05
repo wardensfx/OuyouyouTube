@@ -10,6 +10,12 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8000/auth/callback"
+    # Liste blanche optionnelle (emails séparés par des virgules) : si vide
+    # (par défaut), n'importe quel compte Google peut s'authentifier — sinon
+    # seuls les emails listés passent /callback. Pensé pour un déploiement
+    # exposé directement, sans proxy d'authentification devant ; inutile
+    # (mais inoffensif) si l'instance est déjà protégée en amont.
+    allowed_google_emails: str = ""
 
     # Session
     session_cookie_name: str = "ytpwa_session"
@@ -31,6 +37,10 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+
+    @property
+    def allowed_google_emails_set(self) -> set[str]:
+        return {e.strip().lower() for e in self.allowed_google_emails.split(",") if e.strip()}
 
 
 settings = Settings()
