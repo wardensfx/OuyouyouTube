@@ -7,6 +7,7 @@ import { formatSubscriberCount } from '../utils/format'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
+import LoadMoreStatus from '../components/LoadMoreStatus.vue'
 
 defineOptions({ name: 'Channel' })
 
@@ -18,6 +19,9 @@ const videos = ref([])
 const loading = ref(false)
 const loadingMore = ref(false)
 const error = ref(null)
+// Séparée de `error` (chargement initial) : un échec de page suivante ne
+// doit pas remplacer toute la page déjà affichée par un état d'erreur.
+const loadMoreError = ref(null)
 const nextPageToken = ref(null)
 const modalVideo = ref(null)
 
@@ -43,11 +47,14 @@ async function load() {
 async function loadMore() {
   if (!nextPageToken.value || loadingMore.value) return
   loadingMore.value = true
+  loadMoreError.value = null
   try {
     const page = await api.getChannelVideos(props.id, nextPageToken.value)
     videos.value = [...videos.value, ...page.items]
     nextPageToken.value = page.next_page_token
     progressStore.fetchFor(page.items.map((v) => v.video_id))
+  } catch (e) {
+    loadMoreError.value = e.message
   } finally {
     loadingMore.value = false
   }
@@ -63,7 +70,10 @@ watch(() => props.id, load)
     <RouterLink to="/" class="back"><ArrowLeft :size="16" /> Retour</RouterLink>
 
     <p v-if="loading" class="state">Chargement…</p>
-    <p v-else-if="error" class="state state--error">{{ error }}</p>
+    <div v-else-if="error" class="state state--error">
+      <p>{{ error }}</p>
+      <button class="retry-btn" @click="load">Réessayer</button>
+    </div>
 
     <template v-else-if="channel">
       <div class="header glass">
@@ -86,6 +96,7 @@ watch(() => props.id, load)
         />
       </div>
       <div v-if="nextPageToken" ref="sentinel" class="sentinel" />
+      <LoadMoreStatus :loading="loadingMore" :error="loadMoreError" @retry="loadMore" />
       <p v-if="!videos.length" class="state">Aucune vidéo pour l'instant.</p>
     </template>
 
@@ -111,6 +122,19 @@ watch(() => props.id, load)
 }
 .state--error {
   color: var(--danger);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.retry-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  color: inherit;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 .header {
   display: flex;

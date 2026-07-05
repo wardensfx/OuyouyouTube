@@ -11,6 +11,7 @@ import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 import SkeletonCard from '../components/SkeletonCard.vue'
 import EmptyState from '../components/EmptyState.vue'
+import LoadMoreStatus from '../components/LoadMoreStatus.vue'
 
 defineOptions({ name: 'PlaylistDetail' })
 const SKELETON_COUNT = 6
@@ -28,6 +29,10 @@ const loadingMore = ref(false)
 // ensureFullyLoaded() plus bas.
 const loadingAll = ref(false)
 const error = ref(null)
+// Erreurs de page suivante séparées de `error` (chargement initial) : un
+// échec ne doit pas remplacer toute la grille déjà affichée.
+const loadMoreError = ref(null)
+const loadAllError = ref(null)
 const nextPageToken = ref(null)
 const modalVideo = ref(null)
 
@@ -89,11 +94,14 @@ async function load({ silent = false } = {}) {
 async function loadMore() {
   if (!nextPageToken.value || loadingMore.value) return
   loadingMore.value = true
+  loadMoreError.value = null
   try {
     const page = await api.getPlaylistItems(props.id, nextPageToken.value)
     items.value = [...items.value, ...page.items]
     nextPageToken.value = page.next_page_token
     progressStore.fetchFor(page.items.map((v) => v.video_id))
+  } catch (e) {
+    loadMoreError.value = e.message
   } finally {
     loadingMore.value = false
   }
@@ -103,6 +111,7 @@ const { sentinel } = useInfiniteScroll(loadMore)
 async function ensureFullyLoaded() {
   if (!nextPageToken.value || loadingAll.value) return
   loadingAll.value = true
+  loadAllError.value = null
   try {
     while (nextPageToken.value) {
       const page = await api.getPlaylistItems(props.id, nextPageToken.value)
@@ -110,6 +119,8 @@ async function ensureFullyLoaded() {
       nextPageToken.value = page.next_page_token
       progressStore.fetchFor(page.items.map((v) => v.video_id))
     }
+  } catch (e) {
+    loadAllError.value = e.message
   } finally {
     loadingAll.value = false
   }
@@ -152,7 +163,10 @@ watch(() => props.id, () => load())
     <div v-if="loading" class="grid">
       <SkeletonCard v-for="n in SKELETON_COUNT" :key="n" />
     </div>
-    <p v-else-if="error" class="state state--error">{{ error }}</p>
+    <div v-else-if="error" class="state state--error">
+      <p>{{ error }}</p>
+      <button class="retry-btn" @click="load()">Réessayer</button>
+    </div>
     <template v-else>
       <div v-if="items.length" class="toolbar">
         <input v-model="filterText" type="search" placeholder="Filtrer par titre ou chaîne…" class="toolbar__input" />
@@ -175,7 +189,14 @@ watch(() => props.id, () => load())
         />
       </TransitionGroup>
       <p v-if="loadingAll" class="state">Chargement de toute la playlist pour trier/filtrer…</p>
-      <div v-if="!needsFullSet && nextPageToken" ref="sentinel" class="sentinel" />
+      <div v-else-if="loadAllError" class="state state--error">
+        <p>{{ loadAllError }}</p>
+        <button class="retry-btn" @click="ensureFullyLoaded">Réessayer</button>
+      </div>
+      <template v-else-if="!needsFullSet">
+        <div v-if="nextPageToken" ref="sentinel" class="sentinel" />
+        <LoadMoreStatus :loading="loadingMore" :error="loadMoreError" @retry="loadMore" />
+      </template>
     </template>
 
     <AddToPlaylistModal v-if="modalVideo" :video="modalVideo" @close="modalVideo = null" />
@@ -247,6 +268,19 @@ watch(() => props.id, () => load())
 }
 .state--error {
   color: var(--danger);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.retry-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  color: inherit;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 .sentinel {
   height: 1px;

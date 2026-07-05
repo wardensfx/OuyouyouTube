@@ -3,11 +3,13 @@ import { ref, watch, onMounted, onActivated, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api/client'
 import { useProgressStore } from '../stores/progress'
+import { usePaginatedList } from '../composables/usePaginatedList'
 import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 import SkeletonCard from '../components/SkeletonCard.vue'
 import EmptyState from '../components/EmptyState.vue'
+import LoadMoreStatus from '../components/LoadMoreStatus.vue'
 
 defineOptions({ name: 'Search' })
 const SKELETON_COUNT = 6
@@ -18,11 +20,6 @@ const props = defineProps({ q: { type: String, default: '' } })
 const router = useRouter()
 
 const term = ref(props.q)
-const results = ref([])
-const loading = ref(false)
-const loadingMore = ref(false)
-const error = ref(null)
-const nextPageToken = ref(null)
 const modalVideo = ref(null)
 const searched = ref(false)
 const inputEl = ref(null)
@@ -33,36 +30,28 @@ function focusInput() {
 onMounted(focusInput)
 onActivated(focusInput)
 
+const {
+  items: results,
+  loading,
+  loadingMore,
+  error,
+  loadMoreError,
+  nextPageToken,
+  load,
+  loadMore,
+} = usePaginatedList((pageToken) => api.search(term.value.trim(), pageToken))
+
 async function runSearch(q) {
   if (!q.trim()) return
-  loading.value = true
-  error.value = null
   searched.value = true
-  try {
-    const page = await api.search(q.trim())
-    results.value = page.items
-    nextPageToken.value = page.next_page_token
-    progressStore.fetchFor(results.value.map((v) => v.video_id))
-  } catch (e) {
-    error.value = e.message
-  } finally {
-    loading.value = false
-  }
+  progressStore.fetchFor((await load()).map((v) => v.video_id))
 }
 
-async function loadMore() {
-  if (!nextPageToken.value || loadingMore.value || !term.value.trim()) return
-  loadingMore.value = true
-  try {
-    const page = await api.search(term.value.trim(), nextPageToken.value)
-    results.value = [...results.value, ...page.items]
-    nextPageToken.value = page.next_page_token
-    progressStore.fetchFor(page.items.map((v) => v.video_id))
-  } finally {
-    loadingMore.value = false
-  }
+async function loadMoreWithProgress() {
+  if (!term.value.trim()) return
+  progressStore.fetchFor((await loadMore()).map((v) => v.video_id))
 }
-const { sentinel } = useInfiniteScroll(loadMore)
+const { sentinel } = useInfiniteScroll(loadMoreWithProgress)
 
 function submit() {
   router.push({ name: 'search', query: { q: term.value } })
@@ -88,18 +77,24 @@ watch(
     <div v-if="loading" class="grid">
       <SkeletonCard v-for="n in SKELETON_COUNT" :key="n" />
     </div>
-    <p v-else-if="error" class="state state--error">{{ error }}</p>
+    <div v-else-if="error" class="state state--error">
+      <p>{{ error }}</p>
+      <button class="retry-btn" @click="runSearch(term)">Réessayer</button>
+    </div>
     <EmptyState v-else-if="searched && !results.length" message="Aucun résultat." />
 
-    <div v-else class="grid">
-      <VideoCard
-        v-for="v in results"
-        :key="v.video_id"
-        :video="v"
-        @add-to-playlist="modalVideo = v"
-      />
-    </div>
-    <div v-if="nextPageToken" ref="sentinel" class="sentinel" />
+    <template v-else>
+      <div class="grid">
+        <VideoCard
+          v-for="v in results"
+          :key="v.video_id"
+          :video="v"
+          @add-to-playlist="modalVideo = v"
+        />
+      </div>
+      <div v-if="nextPageToken" ref="sentinel" class="sentinel" />
+      <LoadMoreStatus :loading="loadingMore" :error="loadMoreError" @retry="loadMoreWithProgress" />
+    </template>
 
     <AddToPlaylistModal v-if="modalVideo" :video="modalVideo" @close="modalVideo = null" />
   </div>
@@ -148,5 +143,18 @@ watch(
 }
 .state--error {
   color: var(--danger);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.retry-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  color: inherit;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 </style>

@@ -8,6 +8,10 @@ export const useLibraryStore = defineStore('library', {
     favorites: [],
     favoritesNextPageToken: null,
     favoritesLoadingMore: false,
+    // Séparée de `error` (chargement initial) : un échec de page suivante ne
+    // doit pas remplacer toute la grille des favoris déjà affichée par un
+    // état d'erreur plein écran.
+    favoritesLoadMoreError: null,
     loading: false,
     error: null,
   }),
@@ -36,10 +40,15 @@ export const useLibraryStore = defineStore('library', {
     async loadMoreFavorites() {
       if (!this.favoritesNextPageToken || this.favoritesLoadingMore) return
       this.favoritesLoadingMore = true
+      this.favoritesLoadMoreError = null
       try {
         const page = await api.getFavorites(this.favoritesNextPageToken)
         this.favorites = [...this.favorites, ...page.items]
         this.favoritesNextPageToken = page.next_page_token
+        return page.items
+      } catch (e) {
+        this.favoritesLoadMoreError = e.message
+        return []
       } finally {
         this.favoritesLoadingMore = false
       }
