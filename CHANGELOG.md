@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.1](https://github.com/wardensfx/OuyouyouTube/compare/v0.4.0...v0.4.1) (2026-07-05)
+
+
+### Bug Fixes 🐛
+
+* **front:** recette batch — account switcher dismiss, media session, description scroll ([5d5f33c](https://github.com/wardensfx/OuyouyouTube/commit/5d5f33cf23217c7cff4fa3cbe91f3da480916821))
+* **front:** three PWA feel issues (overscroll, modal position, input zoom) ([5a199ab](https://github.com/wardensfx/OuyouyouTube/commit/5a199ab75ba5b92a7d733d48c9c998dc467980fa))
+* **front:** unbroken long text (e.g. URLs) overflowing and skewing layout ([c727e32](https://github.com/wardensfx/OuyouyouTube/commit/c727e32edce92a3220b6e26a72a5d70001d5fdeb))
+
 ## [0.4.0](https://github.com/wardensfx/OuyouyouTube/compare/v0.3.0...v0.4.0) (2026-07-05)
 
 
