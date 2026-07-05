@@ -24,8 +24,16 @@ services:
   redis:
     image: redis:7
     container_name: ouyouyoutube-redis
+    # Lié à la boucle locale de l'hôte uniquement (utile pour un redis-cli
+    # de debug pendant le dev) — jamais atteignable depuis le réseau. Le
+    # backend, lui, parle à Redis via le réseau interne Docker Compose
+    # (`redis://redis:6379/0`), pas via ce port publié. Sans ce binding
+    # explicite, "6379:6379" publie sur toutes les interfaces de l'hôte, y
+    # compris publiques si l'hôte en a une — Redis tourne ici sans
+    # authentification (pas de `requirepass`), ce qui donnerait un accès
+    # lecture/écriture à toutes les sessions et jetons OAuth stockés.
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     restart: unless-stopped
 
   # Dev : docker compose --profile dev up --watch
