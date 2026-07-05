@@ -170,14 +170,38 @@ watch(() => props.id, () => load())
     <template v-else>
       <div v-if="items.length" class="toolbar">
         <input v-model="filterText" type="search" placeholder="Filtrer par titre ou chaîne…" class="toolbar__input" />
-        <select v-model="sortKey" class="toolbar__select">
+        <select v-model="sortKey" class="toolbar__select" :disabled="loadingAll">
           <option v-for="opt in SORT_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
         </select>
+      </div>
+
+      <!-- Au-dessus de la grille, pas en dessous : sous la grille, ce
+           message se retrouvait facile à manquer sous du contenu qui
+           continue de se réordonner à chaque page chargée (cf. #95). -->
+      <p v-if="loadingAll" class="state">Chargement de toute la playlist pour trier/filtrer…</p>
+      <div v-else-if="loadAllError" class="state state--error">
+        <p>{{ loadAllError }}</p>
+        <button class="retry-btn" @click="ensureFullyLoaded">Réessayer</button>
       </div>
 
       <EmptyState v-if="!items.length" message="Cette playlist est vide." />
       <p v-else-if="!filteredItems.length" class="state">Aucune vidéo ne correspond au filtre.</p>
 
+      <!-- Pas de TransitionGroup pendant loadingAll : chaque page qui
+           arrive fait grossir/retrier filteredItems, et animer chacun de
+           ces réarrangements intermédiaires est plus perturbant qu'utile —
+           la grille reste statique et estompée le temps du chargement
+           complet, l'animation ne reprend qu'une fois stabilisée. -->
+      <div v-else-if="loadingAll" class="grid grid--busy">
+        <VideoCard
+          v-for="v in filteredItems"
+          :key="v.item_id"
+          :video="v"
+          removable
+          @add-to-playlist="modalVideo = v"
+          @remove="removeItem(v)"
+        />
+      </div>
       <TransitionGroup v-else tag="div" name="grid" class="grid">
         <VideoCard
           v-for="v in filteredItems"
@@ -188,12 +212,8 @@ watch(() => props.id, () => load())
           @remove="removeItem(v)"
         />
       </TransitionGroup>
-      <p v-if="loadingAll" class="state">Chargement de toute la playlist pour trier/filtrer…</p>
-      <div v-else-if="loadAllError" class="state state--error">
-        <p>{{ loadAllError }}</p>
-        <button class="retry-btn" @click="ensureFullyLoaded">Réessayer</button>
-      </div>
-      <template v-else-if="!needsFullSet">
+
+      <template v-if="!needsFullSet && !loadingAll && !loadAllError">
         <div v-if="nextPageToken" ref="sentinel" class="sentinel" />
         <LoadMoreStatus :loading="loadingMore" :error="loadMoreError" @retry="loadMore" />
       </template>
@@ -242,6 +262,10 @@ watch(() => props.id, () => load())
   color: inherit;
   font-size: 1rem;
 }
+.toolbar__select:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -262,6 +286,11 @@ watch(() => props.id, () => load())
 }
 .grid-move {
   transition: transform 0.25s ease;
+}
+.grid--busy {
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
 }
 .state {
   opacity: 0.7;
