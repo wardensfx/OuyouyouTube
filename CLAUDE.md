@@ -99,10 +99,15 @@ front/src/
   api/client.js       fetch wrapper, credentials: 'include' required, all
                        calls under /api
   stores/             Pinia stores: library.js (playlists + favorites),
-                       playlistOrder.js, progress.js, toast.js
+                       playlistOrder.js, progress.js, toast.js, history.js
+                       (local watch history, IndexedDB-backed)
+  composables/         useEscapeToClose.js (modal/menu Escape + focus
+                       restore), useInfiniteScroll.js (IntersectionObserver
+                       scroll), usePaginatedList.js (shared load/loadMore
+                       state), useLikeButton.js, usePlaylistOrder.js
   router/index.js      routes: /, /playlist/:id, /playlists/manage,
-                       /favorites, /subscriptions, /trending,
-                       /watch/:videoId, /search
+                       /favorites, /subscriptions, /trending, /history,
+                       /channel/:id, /watch/:videoId, /search
   views/
     Home.vue           customizable home feed (subscriptions, trending,
                        playlists, favorites sections)
@@ -110,11 +115,13 @@ front/src/
     ManagePlaylists.vue reorder/rename/delete playlists
     Player.vue          prepare → poll status → <video> once ready,
                        YouTube-style keyboard shortcuts
-    Search.vue, Trending.vue, Subscriptions.vue, Liked.vue
+    Search.vue, Trending.vue, Subscriptions.vue, Liked.vue, Channel.vue,
+    History.vue
   components/
     VideoCard.vue, PlaylistCard.vue, AccountSwitcher.vue, Sidebar.vue,
     BottomNav.vue, AddToPlaylistModal.vue, ToastContainer.vue,
-    ScrollToTop.vue
+    ScrollToTop.vue, SkeletonCard.vue, EmptyState.vue, PullToRefresh.vue,
+    LoadMoreStatus.vue, ChangelogModal.vue
 ```
 
 ## Current state
