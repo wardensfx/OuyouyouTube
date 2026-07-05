@@ -6,6 +6,7 @@ import { useLibraryStore } from '../stores/library'
 import { useProgressStore } from '../stores/progress'
 import { useToastStore } from '../stores/toast'
 import { parseDurationSeconds } from '../utils/format'
+import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 import SkeletonCard from '../components/SkeletonCard.vue'
@@ -21,7 +22,13 @@ const progressStore = useProgressStore()
 const toast = useToastStore()
 const items = ref([])
 const loading = ref(false)
+const loadingMore = ref(false)
+// Chargement de toutes les pages restantes : nécessaire dès qu'on quitte
+// l'ordre naturel de la playlist (tri/filtre plein-ensemble), voir
+// ensureFullyLoaded() plus bas.
+const loadingAll = ref(false)
 const error = ref(null)
+const nextPageToken = ref(null)
 const modalVideo = ref(null)
 
 const SORT_OPTIONS = [
@@ -33,6 +40,11 @@ const SORT_OPTIONS = [
 ]
 const filterText = ref('')
 const sortKey = ref('position')
+// En dehors de l'ordre naturel de la playlist, trier/filtrer correctement
+// exige l'ensemble complet — pas de sens à scroller-infini pendant que
+// l'utilisateur regarde un tri par titre/date/durée qui se réordonnerait
+// sous ses yeux à chaque page chargée.
+const needsFullSet = computed(() => sortKey.value !== 'position' || !!filterText.value.trim())
 
 const filteredItems = computed(() => {
   const q = filterText.value.trim().toLowerCase()
@@ -62,14 +74,52 @@ async function load({ silent = false } = {}) {
     error.value = null
   }
   try {
-    items.value = await api.getPlaylistItems(props.id)
+    const page = await api.getPlaylistItems(props.id)
+    items.value = page.items
+    nextPageToken.value = page.next_page_token
     progressStore.fetchFor(items.value.map((v) => v.video_id))
+    if (needsFullSet.value) await ensureFullyLoaded()
   } catch (e) {
     if (!silent) error.value = e.message
   } finally {
     if (!silent) loading.value = false
   }
 }
+
+async function loadMore() {
+  if (!nextPageToken.value || loadingMore.value) return
+  loadingMore.value = true
+  try {
+    const page = await api.getPlaylistItems(props.id, nextPageToken.value)
+    items.value = [...items.value, ...page.items]
+    nextPageToken.value = page.next_page_token
+    progressStore.fetchFor(page.items.map((v) => v.video_id))
+  } finally {
+    loadingMore.value = false
+  }
+}
+const { sentinel } = useInfiniteScroll(loadMore)
+
+async function ensureFullyLoaded() {
+  if (!nextPageToken.value || loadingAll.value) return
+  loadingAll.value = true
+  try {
+    while (nextPageToken.value) {
+      const page = await api.getPlaylistItems(props.id, nextPageToken.value)
+      items.value = [...items.value, ...page.items]
+      nextPageToken.value = page.next_page_token
+      progressStore.fetchFor(page.items.map((v) => v.video_id))
+    }
+  } finally {
+    loadingAll.value = false
+  }
+}
+// Bascule vers un tri/filtre plein-ensemble : on complète le chargement
+// une bonne fois pour toutes, ensuite le tri/filtre reste instantané côté
+// client sans nouvel appel réseau.
+watch(needsFullSet, (needed) => {
+  if (needed) ensureFullyLoaded()
+})
 
 async function removeItem(video) {
   const prev = items.value
@@ -124,6 +174,8 @@ watch(() => props.id, () => load())
           @remove="removeItem(v)"
         />
       </TransitionGroup>
+      <p v-if="loadingAll" class="state">Chargement de toute la playlist pour trier/filtrer…</p>
+      <div v-if="!needsFullSet && nextPageToken" ref="sentinel" class="sentinel" />
     </template>
 
     <AddToPlaylistModal v-if="modalVideo" :video="modalVideo" @close="modalVideo = null" />
@@ -195,5 +247,8 @@ watch(() => props.id, () => load())
 }
 .state--error {
   color: var(--danger);
+}
+.sentinel {
+  height: 1px;
 }
 </style>

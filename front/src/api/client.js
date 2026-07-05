@@ -41,7 +41,7 @@ export const api = {
   renamePlaylist: (playlistId, title) =>
     request(`/playlists/${playlistId}`, { method: 'PATCH', ...jsonBody({ title }) }),
   deletePlaylist: (playlistId) => request(`/playlists/${playlistId}`, { method: 'DELETE' }),
-  getPlaylistItems: (playlistId) => request(`/playlists/${playlistId}/items`),
+  getPlaylistItems: (playlistId, pageToken) => request(withPageToken(`/playlists/${playlistId}/items`, pageToken)),
   addPlaylistItem: (playlistId, videoId) =>
     request(`/playlists/${playlistId}/items`, { method: 'POST', ...jsonBody({ video_id: videoId }) }),
   removePlaylistItem: (playlistId, itemId) =>

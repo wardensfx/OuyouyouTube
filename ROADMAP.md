@@ -145,14 +145,25 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
     limite ~128×128 rapportée sur iOS — ajout de `thumbnail_small`
     (120×90, thumbnail "default" de l'API) dans `_video_summary`, listée
     en premier dans `MediaMetadata.artwork`.
-  - #78 (pagination) : traité partiellement — pagination réelle
-    (`page_token` + cache Redis par page, au lieu d'accumuler toutes les
-    pages via `list_next`) et scroll infini (`useInfiniteScroll.js`,
-    `IntersectionObserver`) pour Favoris, Tendances, Vidéos de chaîne et
-    Recherche. Liste des playlists et items de playlist volontairement
-    laissés non paginés : ils alimentent le réordonnancement drag-and-drop
-    et le tri/filtre côté client sur l'ensemble complet, qui casseraient
-    avec une pagination partielle.
+  - #78 (pagination) : traité partiellement dans cette même branche —
+    pagination réelle (`page_token` + cache Redis par page, au lieu
+    d'accumuler toutes les pages via `list_next`) et scroll infini
+    (`useInfiniteScroll.js`, `IntersectionObserver`) pour Favoris,
+    Tendances, Vidéos de chaîne et Recherche.
+- Suite #78 (playlist items) — `claude/open-issues-q1blka`, PR séparée
+  après le merge du batch ci-dessus. `PlaylistDetail.vue` a aussi son tri
+  (titre/date/durée) et son filtre plein-ensemble côté client : paginer
+  `get_playlist_items` sans plus casserait un tri qui se réordonnerait
+  sous les yeux de l'utilisateur à chaque page chargée. Solution : scroll
+  infini seulement en mode "Ordre de la playlist" + filtre vide ; dès que
+  l'utilisateur choisit un autre tri ou tape un filtre, chargement
+  automatique de toutes les pages restantes une bonne fois pour toutes
+  (`ensureFullyLoaded()`), le tri/filtre redevient ensuite instantané côté
+  client. Liste des playlists elle-même (`get_my_playlists`) volontairement
+  laissée non paginée : alimente le réordonnancement drag-and-drop
+  (`ManagePlaylists.vue`) et le picker (`AddToPlaylistModal.vue`), et le
+  nombre de playlists d'un compte perso reste d'un tout autre ordre de
+  grandeur que l'historique d'une chaîne.
 
 ## Sécurité — revue et correctifs
 

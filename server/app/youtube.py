@@ -85,40 +85,43 @@ async def get_liked_videos(credentials: Credentials, account_id: str, page_token
     return result
 
 
-async def get_playlist_items(credentials: Credentials, playlist_id: str) -> list[dict]:
-    cache_key = f"playlist_items:{playlist_id}"
+async def get_playlist_items(credentials: Credentials, playlist_id: str, page_token: str | None = None) -> dict:
+    """Une page à la fois (cf. issue #78) : une playlist peut contenir des
+    milliers de vidéos. Le tri/filtre plein-ensemble de PlaylistDetail.vue
+    déclenche côté frontend le chargement de toutes les pages restantes
+    avant d'opérer — cette fonction elle-même reste simplement paginée."""
+    cache_key = f"playlist_items:{playlist_id}:{page_token or ''}"
     cached = await get_json(cache_key)
     if cached is not None:
         return cached
 
     yt = _client(credentials)
-    items = []
-    request = yt.playlistItems().list(
-        part="snippet,contentDetails", playlistId=playlist_id, maxResults=50
-    )
-    while request is not None:
-        response = request.execute()
-        for item in response.get("items", []):
-            items.append({
-                "item_id": item["id"],
-                "video_id": item["contentDetails"]["videoId"],
-                "title": item["snippet"]["title"],
-                # videoOwnerChannelTitle = chaîne de la vidéo ; channelTitle
-                # (snippet) serait la chaîne propriétaire de la PLAYLIST.
-                "channel": item["snippet"].get("videoOwnerChannelTitle"),
-                "channel_id": item["snippet"].get("videoOwnerChannelId"),
-                "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
-                "position": item["snippet"]["position"],
-                "published_at": item["contentDetails"].get("videoPublishedAt"),
-            })
-        request = yt.playlistItems().list_next(request, response)
+    response = yt.playlistItems().list(
+        part="snippet,contentDetails", playlistId=playlist_id, maxResults=PAGE_SIZE, **_page_kwargs(page_token)
+    ).execute()
+    items = [
+        {
+            "item_id": item["id"],
+            "video_id": item["contentDetails"]["videoId"],
+            "title": item["snippet"]["title"],
+            # videoOwnerChannelTitle = chaîne de la vidéo ; channelTitle
+            # (snippet) serait la chaîne propriétaire de la PLAYLIST.
+            "channel": item["snippet"].get("videoOwnerChannelTitle"),
+            "channel_id": item["snippet"].get("videoOwnerChannelId"),
+            "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
+            "position": item["snippet"]["position"],
+            "published_at": item["contentDetails"].get("videoPublishedAt"),
+        }
+        for item in response.get("items", [])
+    ]
 
     durations = _bulk_durations(yt, [i["video_id"] for i in items])
     for i in items:
         i["duration"] = durations.get(i["video_id"])
 
-    await set_json(cache_key, items, ttl=settings.metadata_ttl_seconds)
-    return items
+    result = {"items": items, "next_page_token": response.get("nextPageToken")}
+    await set_json(cache_key, result, ttl=settings.metadata_ttl_seconds)
+    return result
 
 
 def _video_summary(item: dict) -> dict:
@@ -302,7 +305,7 @@ async def delete_playlist(credentials: Credentials, account_id: str, playlist_id
     yt = _client(credentials)
     yt.playlists().delete(id=playlist_id).execute()
     await get_redis().delete(f"playlists:{account_id}")
-    await get_redis().delete(f"playlist_items:{playlist_id}")
+    await delete_prefix(f"playlist_items:{playlist_id}:")
 
 
 async def add_playlist_item(credentials: Credentials, account_id: str, playlist_id: str, video_id: str) -> dict:
@@ -311,7 +314,7 @@ async def add_playlist_item(credentials: Credentials, account_id: str, playlist_
         part="snippet",
         body={"snippet": {"playlistId": playlist_id, "resourceId": {"kind": "youtube#video", "videoId": video_id}}},
     ).execute()
-    await get_redis().delete(f"playlist_items:{playlist_id}")
+    await delete_prefix(f"playlist_items:{playlist_id}:")
     await get_redis().delete(f"playlists:{account_id}")
     return {"item_id": response["id"], "video_id": video_id, "position": response["snippet"]["position"]}
 
@@ -319,7 +322,7 @@ async def add_playlist_item(credentials: Credentials, account_id: str, playlist_
 async def remove_playlist_item(credentials: Credentials, account_id: str, playlist_id: str, item_id: str):
     yt = _client(credentials)
     yt.playlistItems().delete(id=item_id).execute()
-    await get_redis().delete(f"playlist_items:{playlist_id}")
+    await delete_prefix(f"playlist_items:{playlist_id}:")
     await get_redis().delete(f"playlists:{account_id}")
 
 
