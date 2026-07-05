@@ -15,6 +15,12 @@ defineProps({ playlist: { type: Object, required: true } })
   display: block;
   color: inherit;
   text-decoration: none;
+  /* Sans ça, un item de grille grid-template-columns garde un min-width
+     égal au min-content de son contenu : un titre avec un token non-sécable
+     (URL, hashtag) peut alors gonfler sa colonne bien au-delà de 1fr et
+     pousser toute la grille en overflow horizontal (même bug que VideoCard,
+     cf. #77, jamais corrigé ici — #94). */
+  min-width: 0;
 }
 .card__thumb {
   width: 100%;
