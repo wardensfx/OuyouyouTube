@@ -32,6 +32,15 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  /* Sans ça, le rebond natif de l'overscroll (et le pull-to-refresh natif
+     du navigateur/PWA) se déclenche en même temps que PullToRefresh.vue,
+     qui gère déjà son propre geste — tout l'écran "traînait" visuellement
+     en plus de l'indicateur custom. */
+  overscroll-behavior-y: contain;
+}
+
 body {
   margin: 0;
   color: var(--text);

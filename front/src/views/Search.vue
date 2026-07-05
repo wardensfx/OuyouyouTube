@@ -101,7 +101,9 @@ watch(
   border-radius: var(--radius-sm);
   padding: 0.6rem 0.75rem;
   color: inherit;
-  font-size: 0.95rem;
+  /* iOS Safari zoome automatiquement la page au focus d'un champ dont la
+     taille de police calculée est < 16px — jamais en dessous de 1rem. */
+  font-size: 1rem;
 }
 .search__submit {
   background: var(--accent);
