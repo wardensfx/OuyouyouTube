@@ -124,6 +124,11 @@ watch(() => props.id, load)
   font-size: 0.85rem;
   color: var(--text-dim);
   white-space: pre-wrap;
+  /* Bio de chaîne contient souvent une URL longue et non coupée — sans ça
+     elle déborde hors de sa boîte, élargit toute la page horizontalement,
+     et décale visuellement la grille de vignettes en dessous (ce qui les
+     fait paraître de tailles différentes alors que leur CSS est identique). */
+  overflow-wrap: anywhere;
   max-height: 6rem;
   overflow-y: auto;
 }
