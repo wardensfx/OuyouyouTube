@@ -2,9 +2,17 @@
 import { ref, onMounted, computed } from 'vue'
 import { UserPlus, LogOut } from '@lucide/vue'
 import { api } from '../api/client'
+import { useEscapeToClose } from '../composables/useEscapeToClose'
 
 const accounts = ref([])
 const open = ref(false)
+const triggerRef = ref(null)
+
+function closePanel() {
+  open.value = false
+  triggerRef.value?.focus()
+}
+useEscapeToClose(open, closePanel)
 
 async function load() {
   try {
@@ -29,7 +37,7 @@ function avatarStyle(account) {
 }
 
 async function activate(id) {
-  open.value = false
+  closePanel()
   if (id === active.value?.id) return
   await api.activateAccount(id)
   window.location.reload()
@@ -49,7 +57,7 @@ onMounted(load)
 
 <template>
   <div class="switcher">
-    <button class="switcher__trigger" @click="open = !open">
+    <button ref="triggerRef" class="switcher__trigger" @click="open = !open">
       <span class="avatar" :style="avatarStyle(active)">
         <span v-if="!active?.picture">{{ initials(active) }}</span>
       </span>
@@ -61,10 +69,10 @@ onMounted(load)
          sans ça ce backdrop ne couvrait que la hauteur de la topbar au lieu
          du viewport entier — un clic ailleurs sur la page ne le fermait pas. -->
     <Teleport to="body">
-      <div v-if="open" class="switcher__backdrop" @click="open = false" />
+      <div v-if="open" class="switcher__backdrop" @click="closePanel" />
     </Teleport>
     <Transition name="pop">
-      <div v-if="open" class="switcher__panel glass glass--strong">
+      <div v-if="open" class="switcher__panel glass glass--strong" role="menu" aria-label="Comptes liés">
         <button
           v-for="a in accounts"
           :key="a.id"

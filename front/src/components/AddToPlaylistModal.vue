@@ -1,6 +1,8 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
+import { X } from '@lucide/vue'
 import { useLibraryStore } from '../stores/library'
+import { useEscapeToClose } from '../composables/useEscapeToClose'
 
 const props = defineProps({
   video: { type: Object, default: null },
@@ -11,10 +13,25 @@ const library = useLibraryStore()
 const newTitle = ref('')
 const busy = ref(false)
 const visible = ref(true)
+const modalRef = ref(null)
+
+// Piège de focus minimal : rien d'autre à l'écran ne doit être atteignable
+// au clavier tant que la modale est ouverte (elle est téléportée en fin de
+// <body>, donc l'ordre de tabulation naturel ne la place pas forcément en
+// premier) — on déplace le focus dedans à l'ouverture, et on le restitue
+// au déclencheur à la fermeture plutôt que de le laisser au corps du
+// document.
+let previouslyFocused = null
+onMounted(() => {
+  previouslyFocused = document.activeElement
+  modalRef.value?.focus()
+})
 
 function close() {
   visible.value = false
+  previouslyFocused?.focus?.()
 }
+useEscapeToClose(visible, close)
 
 async function addTo(playlistId) {
   if (!props.video || busy.value) return
@@ -49,8 +66,19 @@ async function createAndAdd() {
   <Teleport to="body">
     <Transition name="modal" @after-leave="emit('close')">
       <div v-if="visible" class="modal__backdrop" @click="close">
-        <div class="modal glass glass--strong" @click.stop>
-          <h2 class="modal__title">Ajouter à une playlist</h2>
+        <div
+          ref="modalRef"
+          class="modal glass glass--strong"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-to-playlist-title"
+          tabindex="-1"
+          @click.stop
+        >
+          <div class="modal__header">
+            <h2 id="add-to-playlist-title" class="modal__title">Ajouter à une playlist</h2>
+            <button class="modal__close" title="Fermer" @click="close"><X :size="18" /></button>
+          </div>
 
           <ul class="modal__list">
             <li v-for="p in library.playlists" :key="p.id">
@@ -88,9 +116,33 @@ async function createAndAdd() {
   display: flex;
   flex-direction: column;
 }
+.modal:focus {
+  outline: none;
+}
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+}
 .modal__title {
   font-size: 1rem;
-  margin: 0 0 0.75rem;
+  margin: 0;
+}
+.modal__close {
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: 0.7;
+  padding: 0.25rem;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.modal__close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
 }
 .modal__list {
   list-style: none;

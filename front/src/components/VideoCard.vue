@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { Heart, Plus, X, MoreVertical, Check, Eye, EyeOff } from '@lucide/vue'
 import { useProgressStore } from '../stores/progress'
 import { useLikeButton } from '../composables/useLikeButton'
+import { useEscapeToClose } from '../composables/useEscapeToClose'
 import { formatDuration, formatRelativeDate } from '../utils/format'
 
 const props = defineProps({
@@ -35,6 +36,13 @@ const watched = computed(() => !!progress.value?.watched)
 // ça se joue. Indépendant du "pending" du bouton Like (voir useLikeButton).
 const pending = ref(null)
 const menuOpen = ref(false)
+const menuTriggerRef = ref(null)
+
+function closeMenu() {
+  menuOpen.value = false
+  menuTriggerRef.value?.focus()
+}
+useEscapeToClose(menuOpen, closeMenu)
 
 function act(name) {
   if (pending.value) return
@@ -46,7 +54,7 @@ function act(name) {
 }
 
 async function toggleWatched() {
-  menuOpen.value = false
+  closeMenu()
   await progressStore.setWatched(props.video.video_id, !watched.value)
 }
 </script>
@@ -83,11 +91,11 @@ async function toggleWatched() {
           </button>
 
           <div class="card__menu">
-            <button class="card__action" title="Plus d'options" @click="menuOpen = !menuOpen">
+            <button ref="menuTriggerRef" class="card__action" title="Plus d'options" @click="menuOpen = !menuOpen">
               <MoreVertical :size="14" />
             </button>
-            <div v-if="menuOpen" class="card__menu-backdrop" @click="menuOpen = false" />
-            <div v-if="menuOpen" class="card__menu-panel glass glass--strong">
+            <div v-if="menuOpen" class="card__menu-backdrop" @click="closeMenu" />
+            <div v-if="menuOpen" class="card__menu-panel glass glass--strong" role="menu">
               <button class="card__menu-item" @click="toggleWatched">
                 <component :is="watched ? EyeOff : Eye" :size="14" />
                 {{ watched ? 'Marquer comme non vue' : 'Marquer comme vue' }}
@@ -96,7 +104,7 @@ async function toggleWatched() {
                 v-if="removable"
                 class="card__menu-item"
                 :disabled="!!pending"
-                @click="act('remove'); menuOpen = false"
+                @click="act('remove'); closeMenu()"
               >
                 <X :size="14" />
                 Retirer de cette playlist
