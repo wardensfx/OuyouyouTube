@@ -42,25 +42,31 @@ async function createAndAdd() {
 </script>
 
 <template>
-  <Transition name="modal" @after-leave="emit('close')">
-    <div v-if="visible" class="modal__backdrop" @click="close">
-      <div class="modal glass glass--strong" @click.stop>
-        <h2 class="modal__title">Ajouter à une playlist</h2>
+  <!-- Téléporté au niveau de <body> : sans ça, un ancêtre qui pose un
+       transform (ex. PullToRefresh.vue) crée un nouveau containing block
+       pour position: fixed, et la modale se retrouve ancrée au bas de ce
+       conteneur scrollable au lieu du viewport — invisible sans scroller. -->
+  <Teleport to="body">
+    <Transition name="modal" @after-leave="emit('close')">
+      <div v-if="visible" class="modal__backdrop" @click="close">
+        <div class="modal glass glass--strong" @click.stop>
+          <h2 class="modal__title">Ajouter à une playlist</h2>
 
-        <ul class="modal__list">
-          <li v-for="p in library.playlists" :key="p.id">
-            <button class="modal__row" :disabled="busy" @click="addTo(p.id)">{{ p.title }}</button>
-          </li>
-          <li v-if="!library.playlists.length" class="modal__empty">Aucune playlist pour l'instant.</li>
-        </ul>
+          <ul class="modal__list">
+            <li v-for="p in library.playlists" :key="p.id">
+              <button class="modal__row" :disabled="busy" @click="addTo(p.id)">{{ p.title }}</button>
+            </li>
+            <li v-if="!library.playlists.length" class="modal__empty">Aucune playlist pour l'instant.</li>
+          </ul>
 
-        <form class="modal__new" @submit.prevent="createAndAdd">
-          <input v-model="newTitle" type="text" placeholder="Nouvelle playlist…" class="modal__input" />
-          <button type="submit" class="modal__submit" :disabled="!newTitle.trim() || busy">Créer</button>
-        </form>
+          <form class="modal__new" @submit.prevent="createAndAdd">
+            <input v-model="newTitle" type="text" placeholder="Nouvelle playlist…" class="modal__input" />
+            <button type="submit" class="modal__submit" :disabled="!newTitle.trim() || busy">Créer</button>
+          </form>
+        </div>
       </div>
-    </div>
-  </Transition>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>

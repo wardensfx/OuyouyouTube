@@ -148,6 +148,9 @@ watch(() => props.id, () => load())
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
+/* iOS Safari zoome automatiquement la page au focus d'un champ/select dont
+   la taille de police calculée est < 16px — jamais en dessous de 1rem sur
+   les deux ci-dessous. */
 .toolbar__input {
   flex: 1;
   min-width: 0;
@@ -156,7 +159,7 @@ watch(() => props.id, () => load())
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.75rem;
   color: inherit;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 .toolbar__select {
   background: rgba(255, 255, 255, 0.06);
@@ -164,7 +167,7 @@ watch(() => props.id, () => load())
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.6rem;
   color: inherit;
-  font-size: 0.85rem;
+  font-size: 1rem;
 }
 .grid {
   display: grid;
