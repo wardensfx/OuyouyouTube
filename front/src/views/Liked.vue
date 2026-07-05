@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { ArrowLeft, Heart } from '@lucide/vue'
 import { useLibraryStore } from '../stores/library'
 import { useProgressStore } from '../stores/progress'
+import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 import SkeletonCard from '../components/SkeletonCard.vue'
@@ -17,6 +18,13 @@ onMounted(async () => {
   if (!library.favorites.length) await library.loadAll()
   progressStore.fetchFor(library.favorites.map((v) => v.video_id))
 })
+
+async function loadMore() {
+  const before = library.favorites.length
+  await library.loadMoreFavorites()
+  progressStore.fetchFor(library.favorites.slice(before).map((v) => v.video_id))
+}
+const { sentinel } = useInfiniteScroll(loadMore)
 
 const modalVideo = ref(null)
 </script>
@@ -41,6 +49,7 @@ const modalVideo = ref(null)
         @add-to-playlist="modalVideo = v"
       />
     </TransitionGroup>
+    <div v-if="library.favoritesNextPageToken" ref="sentinel" class="sentinel" />
 
     <AddToPlaylistModal v-if="modalVideo" :video="modalVideo" @close="modalVideo = null" />
   </div>
@@ -67,6 +76,9 @@ h1 {
 }
 .state--error {
   color: var(--danger);
+}
+.sentinel {
+  height: 1px;
 }
 .grid {
   display: grid;

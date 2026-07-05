@@ -6,6 +6,8 @@ export const useLibraryStore = defineStore('library', {
   state: () => ({
     playlists: [],
     favorites: [],
+    favoritesNextPageToken: null,
+    favoritesLoadingMore: false,
     loading: false,
     error: null,
   }),
@@ -14,16 +16,32 @@ export const useLibraryStore = defineStore('library', {
       this.loading = true
       this.error = null
       try {
-        const [playlists, favorites] = await Promise.all([
+        const [playlists, favoritesPage] = await Promise.all([
           api.getPlaylists(),
           api.getFavorites(),
         ])
         this.playlists = playlists
-        this.favorites = favorites
+        this.favorites = favoritesPage.items
+        this.favoritesNextPageToken = favoritesPage.next_page_token
       } catch (e) {
         this.error = e.message
       } finally {
         this.loading = false
+      }
+    },
+
+    // Favoris potentiellement non bornés (cf. issue #78) : une page à la
+    // fois derrière un scroll infini (voir Liked.vue) plutôt que tout
+    // charger en un appel.
+    async loadMoreFavorites() {
+      if (!this.favoritesNextPageToken || this.favoritesLoadingMore) return
+      this.favoritesLoadingMore = true
+      try {
+        const page = await api.getFavorites(this.favoritesNextPageToken)
+        this.favorites = [...this.favorites, ...page.items]
+        this.favoritesNextPageToken = page.next_page_token
+      } finally {
+        this.favoritesLoadingMore = false
       }
     },
 

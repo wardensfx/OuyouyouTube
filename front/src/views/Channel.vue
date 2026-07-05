@@ -4,6 +4,7 @@ import { ArrowLeft } from '@lucide/vue'
 import { api } from '../api/client'
 import { useProgressStore } from '../stores/progress'
 import { formatSubscriberCount } from '../utils/format'
+import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 
@@ -15,7 +16,9 @@ const progressStore = useProgressStore()
 const channel = ref(null)
 const videos = ref([])
 const loading = ref(false)
+const loadingMore = ref(false)
 const error = ref(null)
+const nextPageToken = ref(null)
 const modalVideo = ref(null)
 
 async function load() {
@@ -23,10 +26,12 @@ async function load() {
   error.value = null
   channel.value = null
   videos.value = []
+  nextPageToken.value = null
   try {
     const [info, channelVideos] = await Promise.all([api.getChannel(props.id), api.getChannelVideos(props.id)])
     channel.value = info
-    videos.value = channelVideos
+    videos.value = channelVideos.items
+    nextPageToken.value = channelVideos.next_page_token
     progressStore.fetchFor(videos.value.map((v) => v.video_id))
   } catch (e) {
     error.value = e.message
@@ -34,6 +39,20 @@ async function load() {
     loading.value = false
   }
 }
+
+async function loadMore() {
+  if (!nextPageToken.value || loadingMore.value) return
+  loadingMore.value = true
+  try {
+    const page = await api.getChannelVideos(props.id, nextPageToken.value)
+    videos.value = [...videos.value, ...page.items]
+    nextPageToken.value = page.next_page_token
+    progressStore.fetchFor(page.items.map((v) => v.video_id))
+  } finally {
+    loadingMore.value = false
+  }
+}
+const { sentinel } = useInfiniteScroll(loadMore)
 
 onMounted(load)
 watch(() => props.id, load)
@@ -66,6 +85,7 @@ watch(() => props.id, load)
           @add-to-playlist="modalVideo = v"
         />
       </div>
+      <div v-if="nextPageToken" ref="sentinel" class="sentinel" />
       <p v-if="!videos.length" class="state">Aucune vidéo pour l'instant.</p>
     </template>
 
@@ -136,5 +156,8 @@ watch(() => props.id, load)
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
+}
+.sentinel {
+  height: 1px;
 }
 </style>

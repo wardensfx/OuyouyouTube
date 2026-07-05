@@ -42,10 +42,16 @@ async function loadInfo() {
 // de la vidéo en cours.
 function setMediaSessionMetadata(video) {
   if (!('mediaSession' in navigator)) return
+  const artwork = []
+  // iOS n'affiche fiablement qu'une artwork sous ~128x128 (cf. issue #74) —
+  // on la liste en premier, "medium" reste pour les plateformes qui gèrent
+  // les plus grands formats sans problème.
+  if (video.thumbnail_small) artwork.push({ src: video.thumbnail_small, sizes: '120x90', type: 'image/jpeg' })
+  if (video.thumbnail) artwork.push({ src: video.thumbnail, sizes: '320x180', type: 'image/jpeg' })
   navigator.mediaSession.metadata = new MediaMetadata({
     title: video.title,
     artist: video.channel,
-    artwork: video.thumbnail ? [{ src: video.thumbnail, sizes: '320x180', type: 'image/jpeg' }] : [],
+    artwork,
   })
 }
 

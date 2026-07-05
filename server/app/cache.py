@@ -24,3 +24,11 @@ async def get_json(key: str):
 
 async def set_json(key: str, value, ttl: int):
     await get_redis().set(key, json.dumps(value), ex=ttl)
+
+
+async def delete_prefix(prefix: str):
+    """Invalide toutes les clés d'un cache paginé (ex: liked:{account_id}:<page_token>)
+    en une fois, plutôt qu'une seule clé fixe."""
+    redis = get_redis()
+    async for key in redis.scan_iter(match=f"{prefix}*"):
+        await redis.delete(key)

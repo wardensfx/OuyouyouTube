@@ -15,5 +15,7 @@ async def channel_info(channel_id: str, account: Account = Depends(get_active_ac
 
 
 @router.get("/{channel_id}/videos")
-async def channel_videos(channel_id: str, account: Account = Depends(get_active_account)):
-    return await youtube.get_channel_videos(account.credentials, channel_id)
+async def channel_videos(
+    channel_id: str, page_token: str | None = None, account: Account = Depends(get_active_account)
+):
+    return await youtube.get_channel_videos(account.credentials, channel_id, page_token=page_token)

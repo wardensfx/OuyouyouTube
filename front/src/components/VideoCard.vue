@@ -126,6 +126,11 @@ async function toggleWatched() {
 .card {
   display: flex;
   flex-direction: column;
+  /* Sans ça, un item de grille grid-template-columns garde un min-width
+     égal au min-content de son contenu : un titre avec un token non-sécable
+     (URL, hashtag) peut alors gonfler sa colonne bien au-delà de 1fr et
+     pousser toute la grille en overflow horizontal. */
+  min-width: 0;
 }
 .card__link {
   display: block;

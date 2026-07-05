@@ -7,12 +7,23 @@ import json
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-from app.cache import get_json, get_redis, set_json
+from app.cache import delete_prefix, get_json, get_redis, set_json
 from app.config import settings
+
+# Taille de page pour les listes potentiellement non bornées (favoris,
+# tendances, vidéos de chaîne, recherche) — cf. issue #78. Les autres listes
+# (playlists de l'utilisateur, items d'une playlist) restent chargées en
+# entier : elles alimentent le réordonnancement/tri côté client sur
+# l'ensemble complet, qui casserait avec une pagination partielle.
+PAGE_SIZE = 24
 
 
 def _client(credentials: Credentials):
     return build("youtube", "v3", credentials=credentials)
+
+
+def _page_kwargs(page_token: str | None) -> dict:
+    return {"pageToken": page_token} if page_token else {}
 
 
 def _bulk_durations(yt, video_ids: list[str]) -> dict[str, str]:
@@ -54,24 +65,24 @@ async def get_my_playlists(credentials: Credentials, account_id: str) -> list[di
     return playlists
 
 
-async def get_liked_videos(credentials: Credentials, account_id: str) -> list[dict]:
-    """Favoris / vidéos likées de l'utilisateur."""
-    cache_key = f"liked:{account_id}"
+async def get_liked_videos(credentials: Credentials, account_id: str, page_token: str | None = None) -> dict:
+    """Favoris / vidéos likées de l'utilisateur, une page à la fois."""
+    cache_key = f"liked:{account_id}:{page_token or ''}"
     cached = await get_json(cache_key)
     if cached is not None:
         return cached
 
     yt = _client(credentials)
-    videos = []
-    request = yt.videos().list(part="snippet,contentDetails", myRating="like", maxResults=50)
-    while request is not None:
-        response = request.execute()
-        for item in response.get("items", []):
-            videos.append(_video_summary(item))
-        request = yt.videos().list_next(request, response)
+    response = yt.videos().list(
+        part="snippet,contentDetails", myRating="like", maxResults=PAGE_SIZE, **_page_kwargs(page_token)
+    ).execute()
+    result = {
+        "items": [_video_summary(item) for item in response.get("items", [])],
+        "next_page_token": response.get("nextPageToken"),
+    }
 
-    await set_json(cache_key, videos, ttl=settings.metadata_ttl_seconds)
-    return videos
+    await set_json(cache_key, result, ttl=settings.metadata_ttl_seconds)
+    return result
 
 
 async def get_playlist_items(credentials: Credentials, playlist_id: str) -> list[dict]:
@@ -111,27 +122,36 @@ async def get_playlist_items(credentials: Credentials, playlist_id: str) -> list
 
 
 def _video_summary(item: dict) -> dict:
+    thumbnails = item["snippet"]["thumbnails"]
     return {
         "video_id": item["id"],
         "title": item["snippet"]["title"],
         "channel": item["snippet"]["channelTitle"],
         "channel_id": item["snippet"]["channelId"],
-        "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
+        "thumbnail": thumbnails.get("medium", {}).get("url"),
+        # Petit format (120x90) en plus du "medium" (320x180) : certaines
+        # plateformes (MediaSession sur iOS) ne rendent fiablement qu'une
+        # artwork sous ~128x128, cf. issue #74.
+        "thumbnail_small": thumbnails.get("default", {}).get("url"),
         "duration": item["contentDetails"]["duration"],  # format ISO 8601
         "published_at": item["snippet"]["publishedAt"],
     }
 
 
-async def search_videos(credentials: Credentials, query: str) -> list[dict]:
+async def search_videos(credentials: Credentials, query: str, page_token: str | None = None) -> dict:
     """search.list ne renvoie que id/snippet (jamais contentDetails, même en
-    le demandant) — la durée nécessite un second appel groupé sur videos.list."""
-    cache_key = f"search:{query.lower()}"
+    le demandant) — la durée nécessite un second appel groupé sur videos.list.
+    Une page à la fois (cf. issue #78) : auparavant plafonné à 25 résultats
+    sans moyen d'aller plus loin, on répercute maintenant le pageToken."""
+    cache_key = f"search:{query.lower()}:{page_token or ''}"
     cached = await get_json(cache_key)
     if cached is not None:
         return cached
 
     yt = _client(credentials)
-    response = yt.search().list(part="snippet", q=query, type="video", maxResults=25).execute()
+    response = yt.search().list(
+        part="snippet", q=query, type="video", maxResults=PAGE_SIZE, **_page_kwargs(page_token)
+    ).execute()
     results = [
         {
             "video_id": item["id"]["videoId"],
@@ -147,8 +167,9 @@ async def search_videos(credentials: Credentials, query: str) -> list[dict]:
     for r in results:
         r["duration"] = durations.get(r["video_id"])
 
-    await set_json(cache_key, results, ttl=settings.metadata_ttl_seconds)
-    return results
+    result = {"items": results, "next_page_token": response.get("nextPageToken")}
+    await set_json(cache_key, result, ttl=settings.metadata_ttl_seconds)
+    return result
 
 
 async def get_video_details(credentials: Credentials, video_id: str) -> dict:
@@ -181,27 +202,31 @@ SUBSCRIPTIONS_CHANNEL_CAP = 15
 SUBSCRIPTIONS_PER_CHANNEL = 5
 
 
-async def get_trending(credentials: Credentials, region: str = "FR") -> list[dict]:
+async def get_trending(credentials: Credentials, region: str = "FR", page_token: str | None = None) -> dict:
     """Pas de notion de compte ici (mêmes tendances pour tout le monde dans
-    une région) — le cache n'a donc pas besoin d'être partitionné par compte."""
-    cache_key = f"trending:{region}"
+    une région) — le cache n'a donc pas besoin d'être partitionné par compte.
+    Une page à la fois (cf. issue #78) plutôt que d'accumuler tout le
+    plafond de ~200 vidéos de YouTube d'un coup."""
+    cache_key = f"trending:{region}:{page_token or ''}"
     cached = await get_json(cache_key)
     if cached is not None:
         return cached
 
     yt = _client(credentials)
-    videos = []
-    request = yt.videos().list(
-        part="snippet,contentDetails", chart="mostPopular", regionCode=region, maxResults=25
-    )
-    while request is not None:
-        response = request.execute()
-        for item in response.get("items", []):
-            videos.append(_video_summary(item))
-        request = yt.videos().list_next(request, response)
+    response = yt.videos().list(
+        part="snippet,contentDetails",
+        chart="mostPopular",
+        regionCode=region,
+        maxResults=PAGE_SIZE,
+        **_page_kwargs(page_token),
+    ).execute()
+    result = {
+        "items": [_video_summary(item) for item in response.get("items", [])],
+        "next_page_token": response.get("nextPageToken"),
+    }
 
-    await set_json(cache_key, videos, ttl=settings.metadata_ttl_seconds)
-    return videos
+    await set_json(cache_key, result, ttl=settings.metadata_ttl_seconds)
+    return result
 
 
 async def get_subscriptions_feed(credentials: Credentials, account_id: str) -> list[dict]:
@@ -301,7 +326,7 @@ async def remove_playlist_item(credentials: Credentials, account_id: str, playli
 async def rate_video(credentials: Credentials, account_id: str, video_id: str, liked: bool):
     yt = _client(credentials)
     yt.videos().rate(id=video_id, rating="like" if liked else "none").execute()
-    await get_redis().delete(f"liked:{account_id}")
+    await delete_prefix(f"liked:{account_id}:")
 
 
 async def get_channel_info(credentials: Credentials, channel_id: str) -> dict | None:
@@ -330,42 +355,58 @@ async def get_channel_info(credentials: Credentials, channel_id: str) -> dict | 
     return info
 
 
-async def get_channel_videos(credentials: Credentials, channel_id: str) -> list[dict]:
+async def _get_uploads_playlist_id(yt, channel_id: str) -> str | None:
+    """L'ID de la playlist "uploads" d'une chaîne ne change jamais : mis en
+    cache indépendamment des pages de vidéos plutôt que refetché à chaque
+    page (cf. get_channel_videos)."""
+    cache_key = f"channel_uploads_playlist:{channel_id}"
+    cached = await get_json(cache_key)
+    if cached is not None:
+        return cached or None
+
+    response = yt.channels().list(part="contentDetails", id=channel_id).execute()
+    items = response.get("items", [])
+    playlist_id = items[0]["contentDetails"]["relatedPlaylists"]["uploads"] if items else ""
+    await set_json(cache_key, playlist_id, ttl=settings.metadata_ttl_seconds)
+    return playlist_id or None
+
+
+async def get_channel_videos(credentials: Credentials, channel_id: str, page_token: str | None = None) -> dict:
     """Passe par la playlist "uploads" de la chaîne (1 unité) plutôt que
     search.list (100 unités) — même logique d'économie de quota que pour
-    les abonnements (cf. get_subscriptions_feed)."""
-    cache_key = f"channel_videos:{channel_id}"
+    les abonnements (cf. get_subscriptions_feed). Une page à la fois (cf.
+    issue #78) : une grosse chaîne peut avoir des milliers de vidéos."""
+    cache_key = f"channel_videos:{channel_id}:{page_token or ''}"
     cached = await get_json(cache_key)
     if cached is not None:
         return cached
 
     yt = _client(credentials)
-    channel_response = yt.channels().list(part="contentDetails", id=channel_id).execute()
-    channel_items = channel_response.get("items", [])
-    if not channel_items:
-        return []
-    uploads_playlist_id = channel_items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
+    uploads_playlist_id = await _get_uploads_playlist_id(yt, channel_id)
+    if uploads_playlist_id is None:
+        return {"items": [], "next_page_token": None}
 
-    videos = []
-    request = yt.playlistItems().list(
-        part="snippet,contentDetails", playlistId=uploads_playlist_id, maxResults=50
-    )
-    while request is not None:
-        response = request.execute()
-        for item in response.get("items", []):
-            videos.append({
-                "video_id": item["contentDetails"]["videoId"],
-                "title": item["snippet"]["title"],
-                "channel": item["snippet"].get("channelTitle"),
-                "channel_id": channel_id,
-                "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
-                "published_at": item["contentDetails"].get("videoPublishedAt"),
-            })
-        request = yt.playlistItems().list_next(request, response)
-
+    response = yt.playlistItems().list(
+        part="snippet,contentDetails",
+        playlistId=uploads_playlist_id,
+        maxResults=PAGE_SIZE,
+        **_page_kwargs(page_token),
+    ).execute()
+    videos = [
+        {
+            "video_id": item["contentDetails"]["videoId"],
+            "title": item["snippet"]["title"],
+            "channel": item["snippet"].get("channelTitle"),
+            "channel_id": channel_id,
+            "thumbnail": item["snippet"]["thumbnails"].get("medium", {}).get("url"),
+            "published_at": item["contentDetails"].get("videoPublishedAt"),
+        }
+        for item in response.get("items", [])
+    ]
     durations = _bulk_durations(yt, [v["video_id"] for v in videos])
     for v in videos:
         v["duration"] = durations.get(v["video_id"])
 
-    await set_json(cache_key, videos, ttl=settings.metadata_ttl_seconds)
-    return videos
+    result = {"items": videos, "next_page_token": response.get("nextPageToken")}
+    await set_json(cache_key, result, ttl=settings.metadata_ttl_seconds)
+    return result

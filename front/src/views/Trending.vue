@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ArrowLeft } from '@lucide/vue'
 import { api } from '../api/client'
 import { useProgressStore } from '../stores/progress'
+import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 import SkeletonCard from '../components/SkeletonCard.vue'
@@ -17,14 +18,18 @@ const videos = ref([])
 // Favoris/Playlists, qu'on constitue soi-même).
 const visibleVideos = computed(() => videos.value.filter((v) => !progressStore.items[v.video_id]?.watched))
 const loading = ref(false)
+const loadingMore = ref(false)
 const error = ref(null)
+const nextPageToken = ref(null)
 const modalVideo = ref(null)
 
 async function load() {
   loading.value = true
   error.value = null
   try {
-    videos.value = await api.getTrending()
+    const page = await api.getTrending()
+    videos.value = page.items
+    nextPageToken.value = page.next_page_token
     progressStore.fetchFor(videos.value.map((v) => v.video_id))
   } catch (e) {
     error.value = e.message
@@ -32,6 +37,20 @@ async function load() {
     loading.value = false
   }
 }
+
+async function loadMore() {
+  if (!nextPageToken.value || loadingMore.value) return
+  loadingMore.value = true
+  try {
+    const page = await api.getTrending(nextPageToken.value)
+    videos.value = [...videos.value, ...page.items]
+    nextPageToken.value = page.next_page_token
+    progressStore.fetchFor(page.items.map((v) => v.video_id))
+  } finally {
+    loadingMore.value = false
+  }
+}
+const { sentinel } = useInfiniteScroll(loadMore)
 
 onMounted(load)
 </script>
@@ -55,6 +74,7 @@ onMounted(load)
         @add-to-playlist="modalVideo = v"
       />
     </div>
+    <div v-if="nextPageToken" ref="sentinel" class="sentinel" />
 
     <AddToPlaylistModal v-if="modalVideo" :video="modalVideo" @close="modalVideo = null" />
   </div>
@@ -81,6 +101,9 @@ h1 {
 }
 .state--error {
   color: var(--danger);
+}
+.sentinel {
+  height: 1px;
 }
 .grid {
   display: grid;
