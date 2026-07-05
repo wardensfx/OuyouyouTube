@@ -164,8 +164,12 @@ function move(key, dir) {
           {{ SECTION_LABELS[key] }}
         </label>
         <div class="home-settings__buttons">
-          <button :disabled="orderIndex(key) === 0" @click="move(key, -1)"><ChevronUp :size="16" /></button>
-          <button :disabled="orderIndex(key) === prefs.order.length - 1" @click="move(key, 1)"><ChevronDown :size="16" /></button>
+          <button title="Monter" :disabled="orderIndex(key) === 0" @click="move(key, -1)"><ChevronUp :size="16" /></button>
+          <button
+            title="Descendre"
+            :disabled="orderIndex(key) === prefs.order.length - 1"
+            @click="move(key, 1)"
+          ><ChevronDown :size="16" /></button>
         </div>
       </div>
     </div>
@@ -298,6 +302,7 @@ function move(key, dir) {
   gap: 0.3rem;
 }
 .home-settings__buttons button {
+  position: relative;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid var(--glass-border);
   color: inherit;
@@ -305,6 +310,14 @@ function move(key, dir) {
   width: 28px;
   height: 28px;
   cursor: pointer;
+}
+/* Élargit la zone tactile sans agrandir le rendu visuel (cf. #93) : boutons
+   serrés l'un contre l'autre à l'horizontale (gap 0.3rem = 4.8px), donc
+   l'agrandissement horizontal reste modéré. */
+.home-settings__buttons button::before {
+  content: '';
+  position: absolute;
+  inset: -8px -2px;
 }
 .home-settings__buttons button:disabled {
   opacity: 0.3;

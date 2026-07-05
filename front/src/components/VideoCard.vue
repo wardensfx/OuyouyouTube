@@ -254,6 +254,7 @@ async function toggleWatched() {
   }
 }
 .card__action {
+  position: relative;
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -268,6 +269,16 @@ async function toggleWatched() {
   align-items: center;
   justify-content: center;
   transition: color 0.15s ease, border-color 0.15s ease;
+}
+/* Élargit la zone tactile sans agrandir le rendu visuel (cf. #93) : ces
+   boutons sont serrés les uns contre les autres (gap 0.3rem = 4.8px), donc
+   l'agrandissement horizontal reste modéré pour ne pas empiéter sur le
+   voisin — l'essentiel de la marge va verticalement, où la place ne manque
+   pas au-dessus/en dessous de la vignette. */
+.card__action::before {
+  content: '';
+  position: absolute;
+  inset: -9px -2px;
 }
 .card__action:hover {
   background: var(--glass-bg-strong);
