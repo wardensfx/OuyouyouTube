@@ -61,6 +61,49 @@ async function toggleWatched() {
         <div v-if="progressPercent > 0 && !watched" class="card__progress-track">
           <div class="card__progress-fill" :style="{ width: `${progressPercent}%` }" />
         </div>
+
+        <!-- Boutons en surimpression sur la vignette (au survol en desktop,
+             toujours visibles au tactile — pas de hover sur mobile) plutôt
+             qu'en ligne sous le titre. click.stop.prevent : ce bloc vit dans
+             le lien qui ouvre le lecteur, ne doit jamais y naviguer. -->
+        <div class="card__overlay" @click.stop.prevent>
+          <button
+            v-if="showLike"
+            class="card__action"
+            :class="{ 'card__action--active': liked, 'card__action--pulse': pulsing }"
+            :disabled="likePending"
+            :title="liked ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+            @click="toggleLike"
+          >
+            <Heart :size="14" :fill="liked ? 'currentColor' : 'none'" />
+          </button>
+
+          <button class="card__action" :disabled="!!pending" title="Ajouter à une playlist" @click="act('add-to-playlist')">
+            <Plus :size="14" />
+          </button>
+
+          <div class="card__menu">
+            <button class="card__action" title="Plus d'options" @click="menuOpen = !menuOpen">
+              <MoreVertical :size="14" />
+            </button>
+            <div v-if="menuOpen" class="card__menu-backdrop" @click="menuOpen = false" />
+            <div v-if="menuOpen" class="card__menu-panel glass glass--strong">
+              <button class="card__menu-item" @click="toggleWatched">
+                <component :is="watched ? EyeOff : Eye" :size="14" />
+                {{ watched ? 'Marquer comme non vue' : 'Marquer comme vue' }}
+              </button>
+              <button
+                v-if="removable"
+                class="card__menu-item"
+                :disabled="!!pending"
+                @click="act('remove'); menuOpen = false"
+              >
+                <X :size="14" />
+                Retirer de cette playlist
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
       <p class="card__title">{{ video.title }}</p>
     </RouterLink>
@@ -76,45 +119,6 @@ async function toggleWatched() {
       <span v-if="video.channel && publishedLabel"> · </span>
       <span v-if="publishedLabel">{{ publishedLabel }}</span>
     </p>
-
-    <div class="card__actions">
-      <button
-        v-if="showLike"
-        class="card__action"
-        :class="{ 'card__action--active': liked, 'card__action--pulse': pulsing }"
-        :disabled="likePending"
-        :title="liked ? 'Retirer des favoris' : 'Ajouter aux favoris'"
-        @click="toggleLike"
-      >
-        <Heart :size="14" :fill="liked ? 'currentColor' : 'none'" />
-      </button>
-
-      <button class="card__action" :disabled="!!pending" title="Ajouter à une playlist" @click="act('add-to-playlist')">
-        <Plus :size="14" />
-      </button>
-
-      <div class="card__menu">
-        <button class="card__action" title="Plus d'options" @click="menuOpen = !menuOpen">
-          <MoreVertical :size="14" />
-        </button>
-        <div v-if="menuOpen" class="card__menu-backdrop" @click="menuOpen = false" />
-        <div v-if="menuOpen" class="card__menu-panel glass glass--strong">
-          <button class="card__menu-item" @click="toggleWatched">
-            <component :is="watched ? EyeOff : Eye" :size="14" />
-            {{ watched ? 'Marquer comme non vue' : 'Marquer comme vue' }}
-          </button>
-          <button
-            v-if="removable"
-            class="card__menu-item"
-            :disabled="!!pending"
-            @click="act('remove'); menuOpen = false"
-          >
-            <X :size="14" />
-            Retirer de cette playlist
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -198,11 +202,29 @@ async function toggleWatched() {
 .card__channel-link:hover {
   text-decoration: underline;
 }
-.card__actions {
+.card__overlay {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  margin-top: 0.25rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.card__thumb-wrap:hover .card__overlay,
+.card__overlay:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+/* Pas de hover au tactile (mobile/tablette) : les boutons restent visibles
+   en permanence, sinon impossible à découvrir/atteindre sans souris. */
+@media (hover: none) {
+  .card__overlay {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 .card__action {
   width: 26px;
@@ -247,7 +269,6 @@ async function toggleWatched() {
 }
 .card__menu {
   position: relative;
-  margin-left: auto;
 }
 .card__menu-backdrop {
   position: fixed;
