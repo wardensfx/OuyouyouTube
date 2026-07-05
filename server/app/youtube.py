@@ -85,12 +85,19 @@ async def get_liked_videos(credentials: Credentials, account_id: str, page_token
     return result
 
 
-async def get_playlist_items(credentials: Credentials, playlist_id: str, page_token: str | None = None) -> dict:
+async def get_playlist_items(
+    credentials: Credentials, account_id: str, playlist_id: str, page_token: str | None = None
+) -> dict:
     """Une page à la fois (cf. issue #78) : une playlist peut contenir des
     milliers de vidéos. Le tri/filtre plein-ensemble de PlaylistDetail.vue
     déclenche côté frontend le chargement de toutes les pages restantes
-    avant d'opérer — cette fonction elle-même reste simplement paginée."""
-    cache_key = f"playlist_items:{playlist_id}:{page_token or ''}"
+    avant d'opérer — cette fonction elle-même reste simplement paginée.
+
+    Clé de cache namespacée par account_id (cf. issue #82) : une playlist
+    peut être privée, donc réservée au compte qui l'a demandée — sans ça,
+    un second compte lié à la même session la recevrait depuis le cache
+    sans jamais repasser par la vérification de permission de Google."""
+    cache_key = f"playlist_items:{account_id}:{playlist_id}:{page_token or ''}"
     cached = await get_json(cache_key)
     if cached is not None:
         return cached
@@ -175,9 +182,15 @@ async def search_videos(credentials: Credentials, query: str, page_token: str | 
     return result
 
 
-async def get_video_details(credentials: Credentials, video_id: str) -> dict:
-    """Métadonnées d'une seule vidéo, pour l'affichage sous le lecteur."""
-    cache_key = f"video_details:{video_id}"
+async def get_video_details(credentials: Credentials, account_id: str, video_id: str) -> dict:
+    """Métadonnées d'une seule vidéo, pour l'affichage sous le lecteur.
+
+    Clé de cache namespacée par account_id (cf. issue #82) : une vidéo peut
+    être privée (réservée à son propriétaire), donc réservée au compte qui
+    l'a demandée — sans ça, un second compte lié à la même session la
+    recevrait depuis le cache sans jamais repasser par la vérification de
+    permission de Google."""
+    cache_key = f"video_details:{account_id}:{video_id}"
     cached = await get_json(cache_key)
     if cached is not None:
         return cached
@@ -305,7 +318,7 @@ async def delete_playlist(credentials: Credentials, account_id: str, playlist_id
     yt = _client(credentials)
     yt.playlists().delete(id=playlist_id).execute()
     await get_redis().delete(f"playlists:{account_id}")
-    await delete_prefix(f"playlist_items:{playlist_id}:")
+    await delete_prefix(f"playlist_items:{account_id}:{playlist_id}:")
 
 
 async def add_playlist_item(credentials: Credentials, account_id: str, playlist_id: str, video_id: str) -> dict:
@@ -314,7 +327,7 @@ async def add_playlist_item(credentials: Credentials, account_id: str, playlist_
         part="snippet",
         body={"snippet": {"playlistId": playlist_id, "resourceId": {"kind": "youtube#video", "videoId": video_id}}},
     ).execute()
-    await delete_prefix(f"playlist_items:{playlist_id}:")
+    await delete_prefix(f"playlist_items:{account_id}:{playlist_id}:")
     await get_redis().delete(f"playlists:{account_id}")
     return {"item_id": response["id"], "video_id": video_id, "position": response["snippet"]["position"]}
 
@@ -322,7 +335,7 @@ async def add_playlist_item(credentials: Credentials, account_id: str, playlist_
 async def remove_playlist_item(credentials: Credentials, account_id: str, playlist_id: str, item_id: str):
     yt = _client(credentials)
     yt.playlistItems().delete(id=item_id).execute()
-    await delete_prefix(f"playlist_items:{playlist_id}:")
+    await delete_prefix(f"playlist_items:{account_id}:{playlist_id}:")
     await get_redis().delete(f"playlists:{account_id}")
 
 

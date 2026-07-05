@@ -33,7 +33,7 @@ class WatchedBody(BaseModel):
 @router.get("/{video_id}/info")
 async def info(video_id: str = VideoId, account: Account = Depends(get_active_account)):
     """Métadonnées (titre, chaîne, date, description…) affichées sous le lecteur."""
-    details = await youtube.get_video_details(account.credentials, video_id)
+    details = await youtube.get_video_details(account.credentials, account.id, video_id)
     if details is None:
         raise HTTPException(status_code=404, detail="Vidéo introuvable.")
     return details

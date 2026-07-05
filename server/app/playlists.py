@@ -46,7 +46,7 @@ async def delete_playlist(playlist_id: str, account: Account = Depends(get_activ
 async def playlist_items(
     playlist_id: str, page_token: str | None = None, account: Account = Depends(get_active_account)
 ):
-    return await youtube.get_playlist_items(account.credentials, playlist_id, page_token=page_token)
+    return await youtube.get_playlist_items(account.credentials, account.id, playlist_id, page_token=page_token)
 
 
 @router.post("/playlists/{playlist_id}/items")
