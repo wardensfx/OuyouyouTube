@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0](https://github.com/wardensfx/OuyouyouTube/compare/v0.3.0...v0.4.0) (2026-07-05)
+
+
+### New Features 🎉
+
+* **front:** overlay VideoCard actions on the thumbnail instead of a row below it ([06abba4](https://github.com/wardensfx/OuyouyouTube/commit/06abba432032cec893d964bbfea6e2b16ff2af5e))
+
+
+### Bug Fixes 🐛
+
+* **ci:** build multi-arch (amd64/arm64) images for GHCR publish ([304fc1f](https://github.com/wardensfx/OuyouyouTube/commit/304fc1f8262c4d36872423b872ea64a20e3562d3))
+* **front:** actually reload the PWA when a new version is deployed ([5a0a90b](https://github.com/wardensfx/OuyouyouTube/commit/5a0a90bb94e7b4ff3d17aec5cde542fce05578c5))
+* **front:** don't wipe the persisted playlist order on an empty sync() ([065a474](https://github.com/wardensfx/OuyouyouTube/commit/065a47405258ba55180f318e734739486076db19))
+* **front:** respect the iPhone safe area at the top of the app ([468a2b2](https://github.com/wardensfx/OuyouyouTube/commit/468a2b2bc5b3c846637936c37fd2bab565a30cd8))
+
 ## [0.3.0](https://github.com/wardensfx/OuyouyouTube/compare/v0.2.1...v0.3.0) (2026-07-04)
 
 
