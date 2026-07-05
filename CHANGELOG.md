@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.5.0](https://github.com/wardensfx/OuyouyouTube/compare/v0.4.1...v0.5.0) (2026-07-05)
+
+
+### New Features 🎉
+
+* **front:** view the changelog from the sidebar's version number ([a34e3eb](https://github.com/wardensfx/OuyouyouTube/commit/a34e3eb759c93ed28ded60c4f02954e45c8ea395))
+* paginate favorites/trending/channel-videos/search with infinite scroll ([#74](https://github.com/wardensfx/OuyouyouTube/issues/74), [#78](https://github.com/wardensfx/OuyouyouTube/issues/78)) ([7d01517](https://github.com/wardensfx/OuyouyouTube/commit/7d01517839e4df7aec5774b8a58fb4c8c8d94b40))
+* **server:** add optional Google account allowlist ([#84](https://github.com/wardensfx/OuyouyouTube/issues/84)) ([2334030](https://github.com/wardensfx/OuyouyouTube/commit/2334030de019db35340b22bc04f4806e9c7dea48))
+* **server:** paginate playlist items with full-load fallback for sort/filter ([#78](https://github.com/wardensfx/OuyouyouTube/issues/78)) ([08c4253](https://github.com/wardensfx/OuyouyouTube/commit/08c4253b6cf21153a10b758d11b17753ac2e5917))
+
+
+### Bug Fixes 🐛
+
+* 74-[#77](https://github.com/wardensfx/OuyouyouTube/issues/77) + scoped pagination for [#78](https://github.com/wardensfx/OuyouyouTube/issues/78) ([89f8c11](https://github.com/wardensfx/OuyouyouTube/commit/89f8c11551a7123348b3cb3baa0e106a82eeebb0))
+* **deploy:** bind Redis port to loopback only in docker-compose ([#85](https://github.com/wardensfx/OuyouyouTube/issues/85)) ([a438b91](https://github.com/wardensfx/OuyouyouTube/commit/a438b9158e997d0b4fd16f713d66b7fcef4fc232))
+* **front:** add keyboard escape, focus handling, and dialog semantics to overlays ([#91](https://github.com/wardensfx/OuyouyouTube/issues/91)) ([999489b](https://github.com/wardensfx/OuyouyouTube/commit/999489badf3c88e5c429ce0fa9a4687d5c4c611d))
+* **front:** add min-width:0 to PlaylistCard's .card to prevent grid overflow ([#94](https://github.com/wardensfx/OuyouyouTube/issues/94)) ([4ab7603](https://github.com/wardensfx/OuyouyouTube/commit/4ab7603d34a5936e44aefc53ce5690e5ce4e796d))
+* **front:** bring Channel.vue and History.vue in line with standard states ([#97](https://github.com/wardensfx/OuyouyouTube/issues/97)) ([70b1b48](https://github.com/wardensfx/OuyouyouTube/commit/70b1b4813a365984e6a481efca4e26fe164ef41e))
+* **front:** bundle of small CSS/formatting fixes ([#99](https://github.com/wardensfx/OuyouyouTube/issues/99)) ([1d2f745](https://github.com/wardensfx/OuyouyouTube/commit/1d2f74540ed1481494a32ea03dc0a765789b4f76))
+* **front:** correct like button state outside loaded favorites pages ([#87](https://github.com/wardensfx/OuyouyouTube/issues/87)) ([5421003](https://github.com/wardensfx/OuyouyouTube/commit/5421003668b58f2096d745503cff06e4d6c6e2d6))
+* **front:** enlarge icon-button touch targets and add missing labels ([#93](https://github.com/wardensfx/OuyouyouTube/issues/93)) ([b449e4a](https://github.com/wardensfx/OuyouyouTube/commit/b449e4ae03a576dba7255cff5aeca525cf87c2f5))
+* **front:** improve accent button text contrast to meet WCAG AA ([#96](https://github.com/wardensfx/OuyouyouTube/issues/96)) ([5edaca7](https://github.com/wardensfx/OuyouyouTube/commit/5edaca708bfadc8dca8a45981dca92ea4da9d999))
+* **front:** improve PlaylistDetail sort-switch full-load feedback ([#95](https://github.com/wardensfx/OuyouyouTube/issues/95)) ([7dab6cf](https://github.com/wardensfx/OuyouyouTube/commit/7dab6cf5e150bb4bc354f7da2adc3d72c8b5c8b9))
+* **front:** resolve grid overflow, stale iOS PWA installs, and pull-to-refresh rubber-band ([#74](https://github.com/wardensfx/OuyouyouTube/issues/74), [#75](https://github.com/wardensfx/OuyouyouTube/issues/75), [#76](https://github.com/wardensfx/OuyouyouTube/issues/76), [#77](https://github.com/wardensfx/OuyouyouTube/issues/77)) ([3edfc77](https://github.com/wardensfx/OuyouyouTube/commit/3edfc7712a65f8ce6dbc10c0dd281e6ef667691c))
+* **front:** standardize on "Vidéos aimées" for the liked-videos feature ([#98](https://github.com/wardensfx/OuyouyouTube/issues/98)) ([8f339eb](https://github.com/wardensfx/OuyouyouTube/commit/8f339eb89c6ec3fb776ea7aa513a139274d2053c))
+* **front:** stop nesting interactive buttons inside VideoCard's RouterLink ([#92](https://github.com/wardensfx/OuyouyouTube/issues/92)) ([f790dbd](https://github.com/wardensfx/OuyouyouTube/commit/f790dbd0f597323f823fb5a3f9e7e5a0c5179773))
+* **front:** surface silent pagination errors with loading indicators and retry ([#88](https://github.com/wardensfx/OuyouyouTube/issues/88)) ([cdb808e](https://github.com/wardensfx/OuyouyouTube/commit/cdb808e3a7a22744d29d0baef541b68e333b3e9c))
+* **server:** partition playlist_items/video_details cache by account_id ([#82](https://github.com/wardensfx/OuyouyouTube/issues/82)) ([c3308d0](https://github.com/wardensfx/OuyouyouTube/commit/c3308d0769ed913ce4b297a43d6b6f9512dbf6b8))
+* **server:** purge and revoke OAuth tokens when unlinking an account ([#83](https://github.com/wardensfx/OuyouyouTube/issues/83)) ([efd28e3](https://github.com/wardensfx/OuyouyouTube/commit/efd28e3cdeb2d82a6cde16a264ba02de3997bfeb))
+* **server:** validate playlist_id/item_id to prevent glob injection in cache invalidation ([#86](https://github.com/wardensfx/OuyouyouTube/issues/86)) ([02a9a15](https://github.com/wardensfx/OuyouyouTube/commit/02a9a151e075551834387d48f333b90fa15eaae9))
+
+
+### Documentation 📝
+
+* catch up ROADMAP.md, CLAUDE.md structure, and README credits/env docs ([edfb1ea](https://github.com/wardensfx/OuyouyouTube/commit/edfb1ea3c30aa3aff8ed8d23ffaa9c798f18a737))
+* make Conventional Commits mandatory and unmissable in CLAUDE.md ([5ec153f](https://github.com/wardensfx/OuyouyouTube/commit/5ec153fe993ee4ba36869b4b0095ba76510ea29e))
+
+
+### Other Changes
+
+* **front:** extract shared usePaginatedList composable ([#89](https://github.com/wardensfx/OuyouyouTube/issues/89)) ([4dde492](https://github.com/wardensfx/OuyouyouTube/commit/4dde4929679243818ad85c8b4a346e562d1fb971))
+
 ## [0.4.1](https://github.com/wardensfx/OuyouyouTube/compare/v0.4.0...v0.4.1) (2026-07-05)
 
 
