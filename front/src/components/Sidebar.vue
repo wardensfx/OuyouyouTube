@@ -73,6 +73,9 @@ const appVersion = __APP_VERSION__
   width: 240px;
   flex-shrink: 0;
   padding: 1rem 0.75rem;
+  /* Le tiroir mobile est en position fixed plein écran — sans ça le
+     premier lien passe sous l'encoche/barre de statut en PWA iPhone. */
+  padding-top: calc(1rem + env(safe-area-inset-top));
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
