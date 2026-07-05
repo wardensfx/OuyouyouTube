@@ -211,6 +211,13 @@ h1 {
   width: 22px;
   height: 22px;
 }
+/* Empilés verticalement avec un gap de 0.15rem (2.4px) : l'agrandissement
+   de la zone tactile (cf. #93) va surtout à l'horizontale, où il n'y a pas
+   de voisin à côté, plutôt qu'à la verticale où les deux boutons se
+   toucheraient. */
+.row__order .row__icon-btn::before {
+  inset: -1px -11px;
+}
 .row__thumb {
   width: 96px;
   aspect-ratio: 16 / 9;
@@ -272,6 +279,7 @@ h1 {
   flex-shrink: 0;
 }
 .row__icon-btn {
+  position: relative;
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -283,6 +291,16 @@ h1 {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+/* Élargit la zone tactile sans agrandir le rendu visuel (cf. #93) : ces
+   boutons sont serrés les uns contre les autres à l'horizontale (gap
+   0.3rem = 4.8px), donc l'agrandissement horizontal reste modéré — la
+   marge la plus généreuse va verticalement. `.row__order .row__icon-btn`
+   (empilage vertical) inverse ce compromis, voir plus haut. */
+.row__icon-btn::before {
+  content: '';
+  position: absolute;
+  inset: -7px -2px;
 }
 .row__icon-btn:hover {
   background: rgba(255, 255, 255, 0.12);
