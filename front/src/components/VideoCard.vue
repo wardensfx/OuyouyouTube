@@ -92,7 +92,7 @@ async function toggleWatched() {
           class="card__action"
           :class="{ 'card__action--active': liked, 'card__action--pulse': pulsing }"
           :disabled="likePending"
-          :title="liked ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+          :title="liked ? 'Retirer des vidéos aimées' : 'Ajouter aux vidéos aimées'"
           @click="toggleLike"
         >
           <Heart :size="14" :fill="liked ? 'currentColor' : 'none'" />

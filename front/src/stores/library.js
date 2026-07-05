@@ -119,10 +119,10 @@ export const useLibraryStore = defineStore('library', {
       if (!already) this.favorites = [video, ...this.favorites]
       try {
         await api.likeVideo(video.video_id)
-        useToastStore().push('Ajoutée aux favoris', 'success')
+        useToastStore().push('Ajoutée aux vidéos aimées', 'success')
       } catch (e) {
         if (!already) this.favorites = this.favorites.filter((v) => v.video_id !== video.video_id)
-        useToastStore().push(`Échec de l'ajout aux favoris : ${e.message}`)
+        useToastStore().push(`Échec de l'ajout aux vidéos aimées : ${e.message}`)
         throw e
       }
     },
@@ -132,10 +132,10 @@ export const useLibraryStore = defineStore('library', {
       this.favorites = this.favorites.filter((v) => v.video_id !== videoId)
       try {
         await api.unlikeVideo(videoId)
-        useToastStore().push('Retirée des favoris', 'success')
+        useToastStore().push('Retirée des vidéos aimées', 'success')
       } catch (e) {
         this.favorites = prev
-        useToastStore().push(`Échec du retrait des favoris : ${e.message}`)
+        useToastStore().push(`Échec du retrait des vidéos aimées : ${e.message}`)
         throw e
       }
     },

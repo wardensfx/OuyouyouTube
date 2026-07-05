@@ -105,7 +105,7 @@ const SECTION_LABELS = {
   subscriptions: 'Abonnements',
   trending: 'Tendances',
   playlists: 'Playlists',
-  favorites: 'Favoris',
+  favorites: 'Vidéos aimées',
 }
 const DEFAULT_ORDER = Object.keys(SECTION_LABELS)
 const PREFS_KEY = 'home_sections_v1'
@@ -243,14 +243,14 @@ function move(key, dir) {
 
       <section v-show="!isHidden('favorites')" class="section" :style="{ order: orderIndex('favorites') }">
         <div class="section__header">
-          <h2>Favoris</h2>
+          <h2>Vidéos aimées</h2>
           <RouterLink to="/favorites" class="link-button">Voir tout <ChevronRight :size="16" /></RouterLink>
         </div>
         <div v-if="library.loading" class="grid">
           <SkeletonCard v-for="n in PREVIEW_COUNT" :key="n" />
         </div>
         <p v-else-if="library.error" class="state state--error">{{ library.error }}</p>
-        <EmptyState v-else-if="!favoritesPreview.length" :icon="Heart" message="Aucun favori pour l'instant." />
+        <EmptyState v-else-if="!favoritesPreview.length" :icon="Heart" message="Aucune vidéo aimée pour l'instant." />
         <TransitionGroup v-else tag="div" name="grid" class="grid">
           <VideoCard
             v-for="v in favoritesPreview"
