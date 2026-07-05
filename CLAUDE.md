@@ -13,6 +13,39 @@ service. The identified legal risk (circumventing YouTube's protections)
 is yt-dlp's own risk, accepted and assumed by each instance's user — see
 the legal disclaimer in `README.md`.
 
+## Git commit messages: Conventional Commits — NON-NEGOTIABLE
+
+**Every commit message, and every PR title/squash-merge commit message,
+MUST follow [Conventional Commits](https://www.conventionalcommits.org/):
+`type(scope): description`.** This is not a style preference — releases
+are fully automated (`release-please`, `.github/workflows/release-please.yml`
++ `release-please-config.json`), and it parses commit messages on `main`
+to generate `CHANGELOG.md` and decide the semver bump. A commit without a
+recognized `type` prefix is invisible to that automation: it won't appear
+in the changelog and won't count toward the version bump, even though the
+code change is real and merged. This already happened once (batch of 10
+PRs merged with plain-English titles, silently breaking the pending
+release) and had to be fixed after the fact with message-only backfill
+commits — don't repeat it.
+
+- **Types**: `feat` (new capability, bumps minor), `fix` (bug fix, bumps
+  patch), `refactor`, `perf`, `test`, `docs`, `chore`, `ci`, `build` (see
+  `release-please-config.json`'s `changelog-sections` for exactly which
+  types are shown/hidden in the changelog).
+- **Scope**: use `(front)`, `(server)`, `(deploy)`, `(ci)` when a change is
+  confined to one area (matches existing history); omit the scope for
+  cross-cutting changes.
+- **Applies at every commit boundary that lands on `main`**: your own
+  `git commit` messages on a feature branch, the PR title (GitHub suggests
+  it as the squash-commit message), and — critically — the actual
+  `commit_title`/`commit_message` passed when squash-merging. Setting a
+  nice PR title is not enough if the merge tool call itself doesn't also
+  carry that title through.
+- If a single PR/commit mixes a bug fix with an unrelated refactor or new
+  capability, prefer splitting it into separate commits/PRs with their own
+  correct type rather than picking one type that misrepresents the other
+  part.
+
 ## Stack (settled decisions, don't deviate without discussion)
 
 - **Backend**: FastAPI (Python), chosen so `yt_dlp` can be imported
