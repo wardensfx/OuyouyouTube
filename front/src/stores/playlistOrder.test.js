@@ -73,6 +73,29 @@ describe('usePlaylistOrderStore', () => {
     expect(store.ids).toEqual(['p1', 'p2'])
   })
 
+  it('an empty sync() (list not loaded yet) does not wipe the persisted order', async () => {
+    // Regression test: usePlaylistOrder.js's watch(getList, ..., { immediate:
+    // true }) fires once with library.playlists still empty (API call not
+    // resolved yet) before the real list arrives. sync([]) must not treat
+    // that as "the user now has zero playlists" and discard the stored order.
+    const db = await openDB(dbNameFor('test-account'), DB_VERSION, {
+      upgrade(db) {
+        for (const name of STORES) {
+          if (!db.objectStoreNames.contains(name)) db.createObjectStore(name, { keyPath: 'key' })
+        }
+      },
+    })
+    await db.put('playlist_order', { key: 'ids', value: ['p2', 'p1'] })
+    db.close()
+
+    const store = usePlaylistOrderStore()
+    await store.sync([])
+    expect(store.ids).toEqual([])
+
+    await store.sync([{ id: 'p1' }, { id: 'p2' }])
+    expect(store.ids).toEqual(['p2', 'p1'])
+  })
+
   it('move() called before the initial load resolves is not silently lost', async () => {
     // Regression test for #54: move() now awaits _ensureLoaded() first,
     // so a call racing the initial IndexedDB read no longer gets dropped

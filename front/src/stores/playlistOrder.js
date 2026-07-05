@@ -23,6 +23,13 @@ export const usePlaylistOrderStore = defineStore('playlistOrder', {
       return this._loaded
     },
     async sync(playlists) {
+      // library.playlists starts empty until the API call resolves — an
+      // empty list here almost always means "not loaded yet", not "the
+      // user has zero playlists". Treating it as the latter wiped the
+      // persisted order on every hard reload, since usePlaylistOrder.js's
+      // watch(..., { immediate: true }) fires once with the empty initial
+      // list before the real one arrives.
+      if (!playlists.length) return
       await this._ensureLoaded()
       const known = this.ids.filter((id) => playlists.some((p) => p.id === id))
       const extra = playlists.filter((p) => !this.ids.includes(p.id)).map((p) => p.id)
