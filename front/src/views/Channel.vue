@@ -8,8 +8,11 @@ import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 import LoadMoreStatus from '../components/LoadMoreStatus.vue'
+import SkeletonCard from '../components/SkeletonCard.vue'
+import EmptyState from '../components/EmptyState.vue'
 
 defineOptions({ name: 'Channel' })
+const SKELETON_COUNT = 6
 
 const props = defineProps({ id: { type: String, required: true } })
 
@@ -69,7 +72,9 @@ watch(() => props.id, load)
   <div class="page">
     <RouterLink to="/" class="back"><ArrowLeft :size="16" /> Retour</RouterLink>
 
-    <p v-if="loading" class="state">Chargement…</p>
+    <div v-if="loading" class="grid">
+      <SkeletonCard v-for="n in SKELETON_COUNT" :key="n" />
+    </div>
     <div v-else-if="error" class="state state--error">
       <p>{{ error }}</p>
       <button class="retry-btn" @click="load">Réessayer</button>
@@ -97,7 +102,7 @@ watch(() => props.id, load)
       </div>
       <div v-if="nextPageToken" ref="sentinel" class="sentinel" />
       <LoadMoreStatus :loading="loadingMore" :error="loadMoreError" @retry="loadMore" />
-      <p v-if="!videos.length" class="state">Aucune vidéo pour l'instant.</p>
+      <EmptyState v-if="!videos.length" message="Aucune vidéo pour l'instant." />
     </template>
 
     <AddToPlaylistModal v-if="modalVideo" :video="modalVideo" @close="modalVideo = null" />
