@@ -69,6 +69,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1.25rem;
+  /* Installé en PWA sur iPhone (display: standalone), le contenu passe
+     sous l'encoche/Dynamic Island/barre de statut sans ça — même logique
+     que le padding-bottom de .app__content pour la safe area basse. */
+  padding-top: calc(0.75rem + env(safe-area-inset-top));
   position: sticky;
   top: 0;
   z-index: 10;
