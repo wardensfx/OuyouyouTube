@@ -317,6 +317,11 @@ watch(() => props.videoId, (_newId, oldId) => {
   color: var(--text-dim);
   margin-top: 0.75rem;
   white-space: pre-wrap;
+  /* Descriptions vidéo contiennent très souvent une URL longue et non
+     coupée (liens raccourcis, réseaux sociaux…) — sans ça elle déborde
+     hors de sa boîte, élargit toute la page horizontalement, et décale
+     visuellement toute la mise en page en dessous (grilles, etc.). */
+  overflow-wrap: anywhere;
   max-height: 8rem;
   overflow-y: auto;
 }

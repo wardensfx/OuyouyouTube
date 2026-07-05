@@ -39,6 +39,12 @@ body {
      qui gère déjà son propre geste — tout l'écran "traînait" visuellement
      en plus de l'indicateur custom. */
   overscroll-behavior-y: contain;
+  /* Filet de sécurité : un texte non coupable qui déborde quelque part
+     (URL longue dans une description, etc.) élargissait toute la page et
+     décalait visuellement tout ce qui suit (grilles y compris) — repéré
+     sur la description de chaîne. Les cas trouvés sont corrigés
+     individuellement (overflow-wrap), mais ça protège contre le suivant. */
+  overflow-x: hidden;
 }
 
 body {
