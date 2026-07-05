@@ -5,13 +5,19 @@ import { useHistoryStore } from '../stores/history'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 import EmptyState from '../components/EmptyState.vue'
+import SkeletonCard from '../components/SkeletonCard.vue'
 
 defineOptions({ name: 'History' })
+const SKELETON_COUNT = 6
 
 const historyStore = useHistoryStore()
 const modalVideo = ref(null)
+const loading = ref(true)
 
-onMounted(() => historyStore.load())
+onMounted(async () => {
+  await historyStore.load()
+  loading.value = false
+})
 
 function clearHistory() {
   if (window.confirm("Vider tout l'historique ? Cette action est irréversible.")) {
@@ -34,8 +40,11 @@ function clearHistory() {
       </button>
     </div>
 
+    <div v-if="loading" class="grid">
+      <SkeletonCard v-for="n in SKELETON_COUNT" :key="n" />
+    </div>
     <EmptyState
-      v-if="!historyStore.entries.length"
+      v-else-if="!historyStore.entries.length"
       :icon="HistoryIcon"
       message="Aucune vidéo visionnée pour l'instant."
     />
