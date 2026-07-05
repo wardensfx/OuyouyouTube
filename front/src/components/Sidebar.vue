@@ -1,9 +1,10 @@
 <script setup>
-import { onMounted, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Home, Search, Rss, TrendingUp, Heart, History, Settings2 } from '@lucide/vue'
 import { useLibraryStore } from '../stores/library'
 import { usePlaylistOrder } from '../composables/usePlaylistOrder'
+import ChangelogModal from './ChangelogModal.vue'
 
 const props = defineProps({ open: { type: Boolean, default: false } })
 const emit = defineEmits(['close'])
@@ -19,6 +20,7 @@ const route = useRoute()
 watch(() => route.fullPath, () => emit('close'))
 
 const appVersion = __APP_VERSION__
+const changelogOpen = ref(false)
 </script>
 
 <template>
@@ -64,8 +66,10 @@ const appVersion = __APP_VERSION__
       <p v-if="!ordered.length" class="sidebar__empty">Aucune playlist pour l'instant.</p>
     </div>
 
-    <p class="sidebar__version">v{{ appVersion }}</p>
+    <button class="sidebar__version" @click="changelogOpen = true">v{{ appVersion }}</button>
   </aside>
+
+  <ChangelogModal v-if="changelogOpen" :version="appVersion" @close="changelogOpen = false" />
 </template>
 
 <style scoped>
@@ -145,9 +149,18 @@ const appVersion = __APP_VERSION__
 }
 .sidebar__version {
   margin: auto 0.75rem 0;
-  padding-top: 0.75rem;
+  padding: 0.75rem 0 0;
   font-size: 0.7rem;
   color: var(--text-dim);
+  background: none;
+  border: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sidebar__version:hover {
+  color: var(--text);
+  text-decoration: underline;
 }
 
 @media (max-width: 768px) {
