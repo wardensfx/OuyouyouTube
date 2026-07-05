@@ -61,58 +61,72 @@ async function toggleWatched() {
 
 <template>
   <div class="card">
-    <RouterLink :to="{ name: 'player', params: { videoId: video.video_id } }" class="card__link">
-      <div class="card__thumb-wrap">
+    <div class="card__thumb-wrap">
+      <!-- aria-hidden/tabindex="-1" : lien purement décoratif, la vraie
+           destination accessible au clavier/lecteur d'écran est le lien sur
+           le titre juste en dessous — évite un doublon de tabulation vers
+           la même page. -->
+      <RouterLink
+        :to="{ name: 'player', params: { videoId: video.video_id } }"
+        class="card__link"
+        tabindex="-1"
+        aria-hidden="true"
+      >
         <img :src="video.thumbnail" :alt="video.title" class="card__thumb" loading="lazy" />
         <span v-if="durationLabel" class="card__duration">{{ durationLabel }}</span>
         <span v-if="watched" class="card__watched" title="Vue"><Check :size="12" /></span>
         <div v-if="progressPercent > 0 && !watched" class="card__progress-track">
           <div class="card__progress-fill" :style="{ width: `${progressPercent}%` }" />
         </div>
+      </RouterLink>
 
-        <!-- Boutons en surimpression sur la vignette (au survol en desktop,
-             toujours visibles au tactile — pas de hover sur mobile) plutôt
-             qu'en ligne sous le titre. click.stop.prevent : ce bloc vit dans
-             le lien qui ouvre le lecteur, ne doit jamais y naviguer. -->
-        <div class="card__overlay" @click.stop.prevent>
-          <button
-            v-if="showLike"
-            class="card__action"
-            :class="{ 'card__action--active': liked, 'card__action--pulse': pulsing }"
-            :disabled="likePending"
-            :title="liked ? 'Retirer des favoris' : 'Ajouter aux favoris'"
-            @click="toggleLike"
-          >
-            <Heart :size="14" :fill="liked ? 'currentColor' : 'none'" />
+      <!-- Boutons en surimpression sur la vignette (au survol en desktop,
+           toujours visibles au tactile — pas de hover sur mobile). Frère du
+           lien plutôt que descendant (cf. #92) : imbriquer des boutons dans
+           un <a> est un modèle de contenu HTML invalide, les navigateurs
+           n'exposent pas forcément les boutons internes de façon cohérente
+           dans l'arbre d'accessibilité. -->
+      <div class="card__overlay">
+        <button
+          v-if="showLike"
+          class="card__action"
+          :class="{ 'card__action--active': liked, 'card__action--pulse': pulsing }"
+          :disabled="likePending"
+          :title="liked ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+          @click="toggleLike"
+        >
+          <Heart :size="14" :fill="liked ? 'currentColor' : 'none'" />
+        </button>
+
+        <button class="card__action" :disabled="!!pending" title="Ajouter à une playlist" @click="act('add-to-playlist')">
+          <Plus :size="14" />
+        </button>
+
+        <div class="card__menu">
+          <button ref="menuTriggerRef" class="card__action" title="Plus d'options" @click="menuOpen = !menuOpen">
+            <MoreVertical :size="14" />
           </button>
-
-          <button class="card__action" :disabled="!!pending" title="Ajouter à une playlist" @click="act('add-to-playlist')">
-            <Plus :size="14" />
-          </button>
-
-          <div class="card__menu">
-            <button ref="menuTriggerRef" class="card__action" title="Plus d'options" @click="menuOpen = !menuOpen">
-              <MoreVertical :size="14" />
+          <div v-if="menuOpen" class="card__menu-backdrop" @click="closeMenu" />
+          <div v-if="menuOpen" class="card__menu-panel glass glass--strong" role="menu">
+            <button class="card__menu-item" @click="toggleWatched">
+              <component :is="watched ? EyeOff : Eye" :size="14" />
+              {{ watched ? 'Marquer comme non vue' : 'Marquer comme vue' }}
             </button>
-            <div v-if="menuOpen" class="card__menu-backdrop" @click="closeMenu" />
-            <div v-if="menuOpen" class="card__menu-panel glass glass--strong" role="menu">
-              <button class="card__menu-item" @click="toggleWatched">
-                <component :is="watched ? EyeOff : Eye" :size="14" />
-                {{ watched ? 'Marquer comme non vue' : 'Marquer comme vue' }}
-              </button>
-              <button
-                v-if="removable"
-                class="card__menu-item"
-                :disabled="!!pending"
-                @click="act('remove'); closeMenu()"
-              >
-                <X :size="14" />
-                Retirer de cette playlist
-              </button>
-            </div>
+            <button
+              v-if="removable"
+              class="card__menu-item"
+              :disabled="!!pending"
+              @click="act('remove'); closeMenu()"
+            >
+              <X :size="14" />
+              Retirer de cette playlist
+            </button>
           </div>
         </div>
       </div>
+    </div>
+
+    <RouterLink :to="{ name: 'player', params: { videoId: video.video_id } }" class="card__link">
       <p class="card__title">{{ video.title }}</p>
     </RouterLink>
     <p v-if="video.channel || publishedLabel" class="card__meta">
