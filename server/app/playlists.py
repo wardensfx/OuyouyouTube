@@ -59,8 +59,8 @@ async def remove_playlist_item(playlist_id: str, item_id: str, account: Account 
 
 
 @router.get("/favorites")
-async def favorites(account: Account = Depends(get_active_account)):
-    return await youtube.get_liked_videos(account.credentials, account.id)
+async def favorites(page_token: str | None = None, account: Account = Depends(get_active_account)):
+    return await youtube.get_liked_videos(account.credentials, account.id, page_token=page_token)
 
 
 @router.put("/favorites/{video_id}")

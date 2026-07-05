@@ -127,6 +127,32 @@ sert de mémoire entre sessions de travail. Chaque case cochée = mergé sur
   vérification d'âge, réservée aux membres, supprimée, pas encore
   disponible) pour afficher un message actionnable côté lecteur au lieu
   du texte brut yt-dlp.
+- Batch de correctifs recette — `claude/open-issues-q1blka` (issues #74-78,
+  auraient dû être traitées en PR séparées, batchées par erreur) :
+  - #77 : grille 2 colonnes déséquilibrée par un titre contenant un token
+    non-sécable (URL/hashtag) — `min-width: 0` manquant sur `.card`
+    (`VideoCard.vue`), l'item de grille gardait son min-content en largeur
+    minimale.
+  - #76 : `overscroll-behavior-y: contain` (fix #67) insuffisant sur iOS
+    Safari, le rubber-band natif restait visible — `PullToRefresh.vue`
+    appelle maintenant `preventDefault()` sur le geste de tiré (uniquement
+    en haut de page, jamais pendant un scroll normal).
+  - #75 : mise à jour PWA jamais détectée sur iOS (l'app installée est
+    suspendue puis reprise par WKWebView, `main.js` ne se ré-exécute pas) —
+    écoute de `pageshow`/`event.persisted` pour forcer un
+    `registration.update()` au retour au premier plan.
+  - #74 : artwork MediaSession (320×180) potentiellement au-dessus de la
+    limite ~128×128 rapportée sur iOS — ajout de `thumbnail_small`
+    (120×90, thumbnail "default" de l'API) dans `_video_summary`, listée
+    en premier dans `MediaMetadata.artwork`.
+  - #78 (pagination) : traité partiellement — pagination réelle
+    (`page_token` + cache Redis par page, au lieu d'accumuler toutes les
+    pages via `list_next`) et scroll infini (`useInfiniteScroll.js`,
+    `IntersectionObserver`) pour Favoris, Tendances, Vidéos de chaîne et
+    Recherche. Liste des playlists et items de playlist volontairement
+    laissés non paginés : ils alimentent le réordonnancement drag-and-drop
+    et le tri/filtre côté client sur l'ensemble complet, qui casseraient
+    avec une pagination partielle.
 
 ## Sécurité — revue et correctifs
 

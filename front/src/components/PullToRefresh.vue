@@ -33,6 +33,13 @@ function onTouchMove(e) {
     pullDistance.value = 0
     return
   }
+  // iOS ne respecte pas toujours overscroll-behavior : sans preventDefault
+  // ici, le rubber-band natif se déclenche en parallèle du même geste et
+  // fait glisser toute la page (cf. issue #76). Le listener est enregistré
+  // en { passive: false } pour que ce preventDefault soit autorisé — on ne
+  // l'appelle que sur un tiré vers le bas depuis le haut de la page, jamais
+  // pendant un scroll normal.
+  e.preventDefault()
   // Résistance : le tiré ralentit au fur et à mesure (pattern natif).
   pullDistance.value = Math.min(delta * 0.5, MAX_PULL)
 }

@@ -74,7 +74,9 @@ async function loadTrending() {
   trendingLoading.value = true
   trendingError.value = null
   try {
-    trending.value = await api.getTrending()
+    // Aperçu limité à PREVIEW_COUNT : la première page suffit, pas besoin
+    // de pagination ici (voir Trending.vue pour la liste complète).
+    trending.value = (await api.getTrending()).items
     progressStore.fetchFor(trending.value.map((v) => v.video_id))
   } catch (e) {
     trendingError.value = e.message

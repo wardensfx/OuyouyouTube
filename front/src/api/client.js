@@ -27,6 +27,14 @@ function jsonBody(body) {
   return { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
 }
 
+// Petit helper pour les listes paginées (favoris, tendances, recherche,
+// vidéos de chaîne) : ajoute ?page_token=... seulement s'il y en a un
+// (première page = pas de token), sur une base de query déjà présente ou non.
+function withPageToken(path, pageToken, hasQuery = false) {
+  if (!pageToken) return path
+  return `${path}${hasQuery ? '&' : '?'}page_token=${encodeURIComponent(pageToken)}`
+}
+
 export const api = {
   getPlaylists: () => request('/playlists'),
   createPlaylist: (title) => request('/playlists', { method: 'POST', ...jsonBody({ title }) }),
@@ -38,13 +46,13 @@ export const api = {
     request(`/playlists/${playlistId}/items`, { method: 'POST', ...jsonBody({ video_id: videoId }) }),
   removePlaylistItem: (playlistId, itemId) =>
     request(`/playlists/${playlistId}/items/${itemId}`, { method: 'DELETE' }),
-  getFavorites: () => request('/favorites'),
+  getFavorites: (pageToken) => request(withPageToken('/favorites', pageToken)),
   likeVideo: (videoId) => request(`/favorites/${videoId}`, { method: 'PUT' }),
   unlikeVideo: (videoId) => request(`/favorites/${videoId}`, { method: 'DELETE' }),
 
-  search: (q) => request(`/search?q=${encodeURIComponent(q)}`),
+  search: (q, pageToken) => request(withPageToken(`/search?q=${encodeURIComponent(q)}`, pageToken, true)),
 
-  getTrending: () => request('/home/trending'),
+  getTrending: (pageToken) => request(withPageToken('/home/trending', pageToken)),
   getSubscriptionsFeed: () => request('/home/subscriptions'),
 
   getVideoInfo: (videoId) => request(`/video/${videoId}/info`),
@@ -58,7 +66,7 @@ export const api = {
   streamUrl: (videoId) => `${API_BASE}/video/${videoId}/stream`,
 
   getChannel: (channelId) => request(`/channels/${channelId}`),
-  getChannelVideos: (channelId) => request(`/channels/${channelId}/videos`),
+  getChannelVideos: (channelId, pageToken) => request(withPageToken(`/channels/${channelId}/videos`, pageToken)),
 
   getAccounts: () => request('/auth/accounts'),
   activateAccount: (accountId) => request(`/auth/accounts/${accountId}/activate`, { method: 'POST' }),

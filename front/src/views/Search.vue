@@ -3,6 +3,7 @@ import { ref, watch, onMounted, onActivated, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api/client'
 import { useProgressStore } from '../stores/progress'
+import { useInfiniteScroll } from '../composables/useInfiniteScroll'
 import VideoCard from '../components/VideoCard.vue'
 import AddToPlaylistModal from '../components/AddToPlaylistModal.vue'
 import SkeletonCard from '../components/SkeletonCard.vue'
@@ -19,7 +20,9 @@ const router = useRouter()
 const term = ref(props.q)
 const results = ref([])
 const loading = ref(false)
+const loadingMore = ref(false)
 const error = ref(null)
+const nextPageToken = ref(null)
 const modalVideo = ref(null)
 const searched = ref(false)
 const inputEl = ref(null)
@@ -36,7 +39,9 @@ async function runSearch(q) {
   error.value = null
   searched.value = true
   try {
-    results.value = await api.search(q.trim())
+    const page = await api.search(q.trim())
+    results.value = page.items
+    nextPageToken.value = page.next_page_token
     progressStore.fetchFor(results.value.map((v) => v.video_id))
   } catch (e) {
     error.value = e.message
@@ -44,6 +49,20 @@ async function runSearch(q) {
     loading.value = false
   }
 }
+
+async function loadMore() {
+  if (!nextPageToken.value || loadingMore.value || !term.value.trim()) return
+  loadingMore.value = true
+  try {
+    const page = await api.search(term.value.trim(), nextPageToken.value)
+    results.value = [...results.value, ...page.items]
+    nextPageToken.value = page.next_page_token
+    progressStore.fetchFor(page.items.map((v) => v.video_id))
+  } finally {
+    loadingMore.value = false
+  }
+}
+const { sentinel } = useInfiniteScroll(loadMore)
 
 function submit() {
   router.push({ name: 'search', query: { q: term.value } })
@@ -80,6 +99,7 @@ watch(
         @add-to-playlist="modalVideo = v"
       />
     </div>
+    <div v-if="nextPageToken" ref="sentinel" class="sentinel" />
 
     <AddToPlaylistModal v-if="modalVideo" :video="modalVideo" @close="modalVideo = null" />
   </div>
@@ -118,6 +138,9 @@ watch(
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
+}
+.sentinel {
+  height: 1px;
 }
 .state {
   opacity: 0.7;

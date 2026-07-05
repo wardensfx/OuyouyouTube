@@ -7,8 +7,8 @@ router = APIRouter(prefix="/home", tags=["home"])
 
 
 @router.get("/trending")
-async def trending(account: Account = Depends(get_active_account)):
-    return await youtube.get_trending(account.credentials)
+async def trending(page_token: str | None = None, account: Account = Depends(get_active_account)):
+    return await youtube.get_trending(account.credentials, page_token=page_token)
 
 
 @router.get("/subscriptions")
