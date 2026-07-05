@@ -162,6 +162,11 @@ watch(() => props.id, load)
 .header__title {
   margin: 0 0 0.2rem;
   font-size: 1.1rem;
+  /* Un nom de chaîne inhabituellement long et non sécable reposerait sinon
+     uniquement sur le filet de sécurité global overflow-x: hidden et se
+     couperait silencieusement au lieu de passer à la ligne — même raison
+     que .header__description ci-dessous. */
+  overflow-wrap: anywhere;
 }
 .header__meta {
   margin: 0;
