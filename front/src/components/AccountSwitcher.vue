@@ -51,7 +51,13 @@ onMounted(load)
       <span class="switcher__name">{{ active?.name || active?.email || '…' }}</span>
     </button>
 
-    <div v-if="open" class="switcher__backdrop" @click="open = false" />
+    <!-- Téléporté au niveau de <body> : le header (backdrop-filter via
+         .glass) crée un nouveau containing block pour position: fixed, donc
+         sans ça ce backdrop ne couvrait que la hauteur de la topbar au lieu
+         du viewport entier — un clic ailleurs sur la page ne le fermait pas. -->
+    <Teleport to="body">
+      <div v-if="open" class="switcher__backdrop" @click="open = false" />
+    </Teleport>
     <Transition name="pop">
       <div v-if="open" class="switcher__panel glass glass--strong">
         <button
